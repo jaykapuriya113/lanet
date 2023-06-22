@@ -38,7 +38,9 @@ const userSchema = new mongoose.Schema(
       type: String,
       // required: [true, "A user must have upload resume"],
     },
-
+    profilePhoto: {
+      type: String,
+    },
     jobsHistory: [{ type: ObjectId, ref: "UserHistory" }],
     role: {
       type: Number,

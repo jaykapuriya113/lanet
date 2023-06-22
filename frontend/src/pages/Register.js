@@ -38,9 +38,12 @@ const Register = () => {
   const [images, setImages] = useState();
   const [role, setRole] = useState("");
   const [resumeLoading, setResumeLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+
 
   const formik = useFormik({
     initialValues: {
+      profilePhoto:"",
       firstName: "",
       lastName: "",
       email: "",
@@ -49,7 +52,7 @@ const Register = () => {
     validationSchema: validationSchema,
     onSubmit: (values, actions) => {
       values.role = role;
-      const finalValues = { ...values, resume: images };
+      const finalValues = { ...values, resume: images,profilePhoto:images };
 
       dispatch(userSignUpAction(finalValues));
       navigate("/login");
@@ -72,6 +75,7 @@ const Register = () => {
     const uploadTask = uploadBytesResumable(storageRef, file);
 
     setResumeLoading(true);
+    setProfileLoading(true);
 
     uploadTask.on(
       "state_changed",
@@ -81,6 +85,7 @@ const Register = () => {
         getDownloadURL(uploadTask.snapshot.ref).then((url) => {
           setImages(url);
           setResumeLoading(false);
+          setProfileLoading(false);
         });
       }
     );
@@ -141,6 +146,31 @@ const Register = () => {
                 Recruiter
               </div>
             </div>
+            <TextField
+              sx={{
+                mb: 3,
+                "& .MuiInputBase-root": {
+                  color: "text.secondary",
+                },
+                fieldset: { borderColor: "rgb(231, 235, 240)" },
+              }}
+              fullWidth
+              id="profilePhoto"
+              label="profilePhoto"
+              name="profilePhoto"
+              type="file"
+              InputLabelProps={{
+                shrink: true,
+              }}
+              placeholder="profile Photo"
+              value={formik.values.profilePhoto}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
+              error={
+                formik.touched.profilePhoto && Boolean(formik.errors.profilePhoto)
+              }
+              helperText={formik.touched.profilePhoto && formik.errors.profilePhoto}
+            />
             <TextField
               sx={{
                 mb: 3,
