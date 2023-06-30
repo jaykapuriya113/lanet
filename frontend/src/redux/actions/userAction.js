@@ -126,7 +126,24 @@ export const allUserAction = (page, pageSize) => async (dispatch) => {
     });
   }
 };
-
+//allShowUserAction
+export const allShowUserAction = () => async (dispatch) => {
+  dispatch({ type: ALL_USER_LOAD_REQUEST });
+  try {
+    const { data } = await axios.get(
+     "/api/showallusers"
+    );
+    dispatch({
+      type: ALL_USER_LOAD_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: ALL_USER_LOAD_FAIL,
+      payload: error.response.data.error,
+    });
+  }
+};
 //user job apply action
 export const userApplyJobAction = (Job) => async (dispatch) => {
   dispatch({ type: USER_APPLY_JOB_REQUEST });

@@ -5,7 +5,7 @@ import CardActions from "@mui/material/CardActions";
 import CardContent from "@mui/material/CardContent";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { useTheme } from "@mui/material";
+import { Avatar, IconButton, Tooltip, useTheme } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import { Link } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
@@ -16,11 +16,12 @@ const CardElement = ({
   category,
   location,
   id,
+  profilePhoto,
   AdditionalInformation,
   companyName,
 }) => {
   const { palette } = useTheme();
-
+console.log(profilePhoto)
   return (
     <Card sx={{ minWidth: 275, mb: 2, mt: 2 }}>
       <CardContent sx={{ mb: -1.5 }}>
@@ -42,6 +43,16 @@ const CardElement = ({
           >
             {location}
           </Typography>
+
+         <Tooltip>
+            <IconButton sx={{ ml: 74 }}>
+              <Avatar
+                alt=""
+                src={profilePhoto}
+                sx={{ color: palette.primary.white }}
+              />
+            </IconButton>
+          </Tooltip>
         </Box>
         <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
           {jobTitle}

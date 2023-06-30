@@ -19,11 +19,14 @@ import Navbar from "../component/Navbar";
 import { jobLoadSingleAction } from "../redux/actions/jobAction";
 import Button from "@mui/material/Button";
 import { userApplyJobAction } from "../redux/actions/userAction";
+import { Avatar, IconButton, Tooltip, useTheme } from "@mui/material";
 
 const SingleJob = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { singleJob, loading } = useSelector((state) => state.singleJob);
+  const { jobs } = useSelector((state) => state.loadJobs);
+    const { palette } = useTheme();
   const { userInfo } = useSelector((state) => state.signIn);
   const [formdata, setFormdata] = useState({
     coverLetter: "",
@@ -115,7 +118,30 @@ const SingleJob = () => {
                       >
                         {singleJob && singleJob.companyName}
                       </Typography>
-
+                      <Tooltip>
+                    {  jobs &&
+                jobs.map((job, i) => (
+                  <div>
+                    key={i}
+                    id={job._id}
+                    jobTitle={job.title}
+                    companyName={job.companyName}
+                    description={job.description}
+                    category={
+                      job.jobType ? job.jobType.jobTypeName : "No category"
+                    }
+                    location={job.location}
+                    {/* profilePhoto={job.user.profilePhoto}  */}
+                  </div>
+                ))}
+            <IconButton sx={{ ml: 74 }}>
+              <Avatar
+                alt=""
+                // src={profilePhoto}
+                sx={{ color: palette.primary.white }}
+              />
+            </IconButton>
+          </Tooltip>
                       <Typography
                         variant="body1"
                         sx={{ fontWeight: 600, fontSize: "16px", mt: 2 }}

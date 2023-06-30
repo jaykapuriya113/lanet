@@ -11,6 +11,7 @@ const {
   showJobsyByUser,
   showAdminUserApplyJob,
   adminShowUserApplyJob,
+  showAllJobs,
 } = require("../controllers/jobsController");
 
 //job router
@@ -26,6 +27,8 @@ router.patch("/job/update/:job_id", isAuthenticated, isAdmin, updateJob);
 
 // /api/jobs/show
 router.get("/jobs/show/", showJobs);
+// /api/jobs/showalljobs
+router.get("/jobs/showalljobs", showAllJobs);
 
 // /api/jobs/show
 router.get("/jobs/showByUser/:id", showJobsyByUser);

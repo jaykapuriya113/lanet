@@ -5,6 +5,7 @@ const {
   editUser,
   deleteUser,
   createUserJobsHistory,
+  ShowAllUser,
 } = require("../controllers/userController");
 const { isAuthenticated, isAdmin, isMainAdmin } = require("../middleware/auth");
 const router = express.Router();
@@ -13,7 +14,8 @@ const router = express.Router();
 
 //  /api/allusers
 router.get("/allusers", isAuthenticated, isMainAdmin, allUser);
-
+//  /api/showallusers
+router.get("/showallusers", isAuthenticated, isMainAdmin, ShowAllUser);
 //  /api/user/id
 router.get("/user/:id", isAuthenticated, singleUser);
 

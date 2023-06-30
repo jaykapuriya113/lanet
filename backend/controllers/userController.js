@@ -29,6 +29,21 @@ exports.allUser = async (req, res, next) => {
   }
 };
 
+
+exports.ShowAllUser = async (req, res, next) => {
+  try {
+    const users = await User.find({ isDeleted: false })
+      .sort({ createdAt: -1 })
+      .select("-password")
+    res.status(200).json({
+      success: true,
+      users,
+    });
+    next();
+  } catch (error) {
+    return next(error);
+  }
+};
 //show single user
 exports.singleUser = async (req, res, next) => {
   try {

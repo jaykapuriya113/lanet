@@ -107,7 +107,7 @@ exports.showJobs = async (req, res, next) => {
     })
       .sort({ createdAt: -1 })
       .populate("jobType", "jobTypeName")
-      .populate("user", "firstName")
+      .populate("user", "firstName profilePhoto")
       .skip(pageSize * (page - 1))
       .limit(pageSize);
     res.status(200).json({
@@ -122,7 +122,19 @@ exports.showJobs = async (req, res, next) => {
     next(error);
   }
 };
-
+exports.showAllJobs= async (req, res, next) => {
+  try {
+      const jobs = await Job.find({})
+        .sort({ createdAt: -1 })
+      res.status(200).json({
+        success: true,
+        jobs,
+      });
+     } catch (error) {
+    next(error);
+    
+  }
+}
 //show job by id.
 exports.showJobsyByUser = async (req, res, next) => {
   try {

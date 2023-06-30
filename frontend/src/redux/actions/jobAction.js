@@ -47,6 +47,28 @@ export const jobLoadAction =
     }
   };
 
+
+  export const allJobLoadAction =
+  () =>
+  async (dispatch) => {
+    dispatch({ type: JOB_LOAD_REQUEST });
+    try {
+      const { data } = await axios.get(
+       "/api/jobs/showalljobs"
+      );
+      dispatch({
+        type: JOB_LOAD_SUCCESS,
+        payload: data,
+      });
+    } catch (error) {
+      dispatch({
+        type: JOB_LOAD_FAIL,
+        payload: error.response.data.error,
+      });
+    }
+  };
+
+
 // single job action
 export const jobLoadSingleAction = (id) => async (dispatch) => {
   dispatch({ type: JOB_LOAD_SINGLE_REQUEST });

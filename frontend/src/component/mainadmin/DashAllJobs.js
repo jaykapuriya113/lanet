@@ -4,13 +4,13 @@ import { DataGrid, GridToolbar, gridClasses } from "@mui/x-data-grid";
 import { Link } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import { useDispatch, useSelector } from "react-redux";
-import { jobLoadAction } from "../../redux/actions/jobAction";
+import { allJobLoadAction, jobLoadAction } from "../../redux/actions/jobAction";
 
 const DashAllJobs = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    dispatch(jobLoadAction());
+    dispatch(allJobLoadAction());
   }, []);
 
   const { jobs, loading } = useSelector((state) => state.loadJobs);
