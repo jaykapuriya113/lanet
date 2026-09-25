@@ -44,7 +44,7 @@ console.log(profilePhoto)
             {location}
           </Typography>
 
-         <Tooltip>
+         <Tooltip title="Profile photo">
             <IconButton sx={{ ml: 74 }}>
               <Avatar
                 alt=""

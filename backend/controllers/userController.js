@@ -1,4 +1,5 @@
 const User = require("../models/userModel");
+const Job = require("../models/jobModel");
 const ErrorResponse = require("../utils/errorResponse");
 const UserHistory = require("./../models/jobHistory");
 
@@ -95,6 +96,19 @@ exports.createUserJobsHistory = async (req, res, next) => {
   const { title, description, salary, location, id, coverLetter, assessment } =
     req.body;
   try {
+    const job = await Job.findById(id);
+    if (!job) {
+      return next(new ErrorResponse("Job not found", 404));
+    }
+    if (req.user.role === 1) {
+      return next(new ErrorResponse("Recruiters cannot apply to jobs", 403));
+    }
+    if (job.user.toString() === req.user._id.toString()) {
+      return next(
+        new ErrorResponse("You cannot apply to your own job", 400)
+      );
+    }
+
     const existingApplication = await UserHistory.findOne({
       user: req.user._id,
       jobId: id,
@@ -104,33 +118,29 @@ exports.createUserJobsHistory = async (req, res, next) => {
         message: "You have already applied for this job.",
       });
     }
+
     const currentUser = await User.findOne({ _id: req.user._id });
-    console.log(coverLetter);
     if (!currentUser) {
       return next(new ErrorResponse("You must log in", 401));
-    } else {
-      console.log(coverLetter);
-      const addJobHostory = {
-        title,
-        description,
-        salary,
-        location,
-        user: req.user._id,
-        jobId: id,
-        coverLetter,
-        assessment,
-      };
-      console.log(coverLetter);
-
-      // currentUser.jobsHistory.push(addJobHostory);
-      const currentUser = await UserHistory.create(addJobHostory);
-      // await currentUser.save();
-
-      res.status(200).json({
-        success: true,
-        currentUser,
-      });
     }
+
+    const addJobHostory = {
+      title,
+      description,
+      salary,
+      location,
+      user: req.user._id,
+      jobId: id,
+      coverLetter,
+      assessment,
+    };
+
+    const userHistory = await UserHistory.create(addJobHostory);
+
+    res.status(200).json({
+      success: true,
+      currentUser: userHistory,
+    });
     next();
   } catch (error) {
     console.log(error);

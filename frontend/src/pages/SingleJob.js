@@ -118,30 +118,17 @@ const SingleJob = () => {
                       >
                         {singleJob && singleJob.companyName}
                       </Typography>
-                      <Tooltip>
-                    {  jobs &&
-                jobs.map((job, i) => (
-                  <div>
-                    key={i}
-                    id={job._id}
-                    jobTitle={job.title}
-                    companyName={job.companyName}
-                    description={job.description}
-                    category={
-                      job.jobType ? job.jobType.jobTypeName : "No category"
-                    }
-                    location={job.location}
-                    {/* profilePhoto={job.user.profilePhoto}  */}
-                  </div>
-                ))}
-            <IconButton sx={{ ml: 74 }}>
-              <Avatar
-                alt=""
-                // src={profilePhoto}
-                sx={{ color: palette.primary.white }}
-              />
-            </IconButton>
-          </Tooltip>
+                      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+                        <Tooltip title="Company logo">
+                          <IconButton sx={{ p: 0 }}>
+                            <Avatar
+                              alt=""
+                              src={singleJob && singleJob.profilePhoto}
+                              sx={{ color: palette.primary.white }}
+                            />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                       <Typography
                         variant="body1"
                         sx={{ fontWeight: 600, fontSize: "16px", mt: 2 }}

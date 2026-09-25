@@ -30,7 +30,10 @@ exports.createJob = async (req, res, next) => {
 //single job
 exports.singleJob = async (req, res, next) => {
   try {
-    const job = await Job.findById(req.params.id);
+    const job = await Job.findById(req.params.id).populate(
+      "user",
+      "_id role profilePhoto firstName"
+    );
     res.status(200).json({
       success: true,
       job,

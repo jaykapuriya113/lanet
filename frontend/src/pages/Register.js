@@ -8,26 +8,28 @@ import { useFormik } from "formik";
 import * as yup from "yup";
 import { useDispatch } from "react-redux";
 import { userSignUpAction } from "../redux/actions/userAction";
-import storage from "../utils/firebase";
-import {
-  ref as addRef,
-  uploadBytesResumable,
-  getDownloadURL,
-} from "firebase/storage";
+import axios from "axios";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const validationSchema = yup.object({
+const validationSchema = yup.object().shape({
+  profilePhoto: yup.string().required("Profile photo is required"),
+  role: yup.string().required("Role is required"),
+  resume: yup.string().when("role", (role, schema) => {
+    return role === "0"
+      ? schema.required("Resume is required")
+      : schema;
+  }),
   firstName: yup
-    .string("Enter your First Name")
+    .string()
     .min(3, "First Name should be of minimum 3 characters length")
     .required("First Name is required"),
   lastName: yup
-    .string("Enter your Last Name")
+    .string()
     .min(3, "Last Name should be of minimum 3 characters length")
     .required("Last Name is required"),
   email: yup
-    .string("Enter your email")
+    .string()
     .email("Enter a valid email")
     .required("Email is required"),
 });
@@ -39,20 +41,21 @@ const Register = () => {
   const [role, setRole] = useState("");
   const [resumeLoading, setResumeLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
-
+  const [isUploading, setIsUploading] = useState(false);
 
   const formik = useFormik({
     initialValues: {
-      profilePhoto:"",
+      profilePhoto: "",
       firstName: "",
       lastName: "",
       email: "",
       password: "",
+      resume: "",
+      role: "",
     },
     validationSchema: validationSchema,
     onSubmit: (values, actions) => {
-      values.role = role;
-      const finalValues = { ...values, resume: images,profilePhoto:images };
+      const finalValues = { ...values };
 
       dispatch(userSignUpAction(finalValues));
       navigate("/login");
@@ -62,33 +65,59 @@ const Register = () => {
 
   const handleRoleChange = (event) => {
     setRole(event.target.value);
+    formik.setFieldValue("role", event.target.value);
   };
 
-  const photoupload = (event) => {
-    let file = event.target.files[0];
-
+  const uploadFileToServer = async (file) => {
     if (!file) {
-      alert("Please upload an image first!");
+      return null;
     }
 
-    const storageRef = addRef(storage, `/files/${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const { data } = await axios.post("/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return data.url;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
+  const photoupload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) {
+      alert("Please upload an image first!");
+      return;
+    }
+
+    setProfileLoading(true);
+    const url = await uploadFileToServer(file);
+    if (url) {
+      formik.setFieldValue("profilePhoto", url);
+      setImages(url);
+    }
+    setProfileLoading(false);
+  };
+
+  const resumeUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) {
+      alert("Please upload a resume file first!");
+      return;
+    }
 
     setResumeLoading(true);
-    setProfileLoading(true);
-
-    uploadTask.on(
-      "state_changed",
-      (snapshot) => {},
-      (err) => console.log(err),
-      () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((url) => {
-          setImages(url);
-          setResumeLoading(false);
-          setProfileLoading(false);
-        });
-      }
-    );
+    const url = await uploadFileToServer(file);
+    if (url) {
+      formik.setFieldValue("resume", url);
+    }
+    setResumeLoading(false);
   };
 
   return (
@@ -144,6 +173,11 @@ const Register = () => {
                   required
                 />
                 Recruiter
+                {formik.touched.role && formik.errors.role && (
+                  <div style={{ color: "red", marginTop: 8 }}>
+                    {formik.errors.role}
+                  </div>
+                )}
               </div>
             </div>
             <TextField
@@ -163,13 +197,15 @@ const Register = () => {
                 shrink: true,
               }}
               placeholder="profile Photo"
-              value={formik.values.profilePhoto}
-              onChange={formik.handleChange}
+              onChange={photoupload}
               onBlur={formik.handleBlur}
               error={
-                formik.touched.profilePhoto && Boolean(formik.errors.profilePhoto)
+                formik.touched.profilePhoto &&
+                Boolean(formik.errors.profilePhoto)
               }
-              helperText={formik.touched.profilePhoto && formik.errors.profilePhoto}
+              helperText={
+                formik.touched.profilePhoto && formik.errors.profilePhoto
+              }
             />
             <TextField
               sx={{
@@ -281,7 +317,7 @@ const Register = () => {
                     shrink: true,
                   }}
                   placeholder="Resume"
-                  onChange={photoupload}
+                  onChange={resumeUpload}
                   onBlur={formik.handleBlur}
                   error={formik.touched.resume && Boolean(formik.errors.resume)}
                   helperText={formik.touched.resume && formik.errors.resume}

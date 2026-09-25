@@ -1,2 +1,11 @@
-/node_module
-# .env
+# Ignore all node_modules folders
+node_modules/
+
+# Ignore backend upload files
+backend/uploads/
+
+# Ignore nose module
+nose/
+
+# Ignore environment files
+.env
