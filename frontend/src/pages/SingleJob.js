@@ -26,7 +26,7 @@ const SingleJob = () => {
   const navigate = useNavigate();
   const { singleJob, loading } = useSelector((state) => state.singleJob);
   const { jobs } = useSelector((state) => state.loadJobs);
-    const { palette } = useTheme();
+  const { palette } = useTheme();
   const { userInfo } = useSelector((state) => state.signIn);
   const [formdata, setFormdata] = useState({
     coverLetter: "",
@@ -70,9 +70,20 @@ const SingleJob = () => {
     }));
   };
 
+  const isRecruiter = userInfo?.role?.role === 1;
+  const isOwner = singleJob
+    ? String(singleJob.user?._id || singleJob.user) ===
+      String(userInfo?.role?._id)
+    : false;
+  const canApply = userInfo && !isRecruiter && !isOwner;
+
   const applyForAJob = () => {
     if (!userInfo) {
       navigate("/login");
+    } else if (isRecruiter) {
+      alert("Recruiters cannot apply to jobs.");
+    } else if (isOwner) {
+      alert("You cannot apply to your own job.");
     } else {
       setShowForm(true);
     }
@@ -182,7 +193,7 @@ const SingleJob = () => {
                   </Card>
                 )}
                 <br />
-                {showForm && (
+                {showForm && canApply && (
                   <>
                     <Card>
                       <DialogTitle>
@@ -253,6 +264,7 @@ const SingleJob = () => {
               </Box>
               <Box sx={{ flex: 1, p: 2 }}>
                 <Card sx={{ p: 2 }}>
+                {canApply ? (
                   <Button
                     onClick={applyForAJob}
                     sx={{ fontSize: "13px" }}
@@ -260,7 +272,12 @@ const SingleJob = () => {
                   >
                     Apply for this Job
                   </Button>
-                </Card>
+                ) : (
+                  <Button sx={{ fontSize: "13px" }} variant="contained" disabled>
+                    {userInfo ? (isOwner ? "Owner cannot apply" : "Recruiters cannot apply") : "Login to apply"}
+                  </Button>
+                )}
+              </Card>
               </Box>
             </Stack>
           </Container>
