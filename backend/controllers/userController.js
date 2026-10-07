@@ -2,6 +2,27 @@ const User = require("../models/userModel");
 const Job = require("../models/jobModel");
 const ErrorResponse = require("../utils/errorResponse");
 const UserHistory = require("./../models/jobHistory");
+const Notification = require("../models/notificationModel");
+const fs = require("fs/promises");
+const path = require("path");
+
+const getStoredResumePath = (resumeUrl) => {
+  if (typeof resumeUrl !== "string" || !resumeUrl) return null;
+
+  let pathname = resumeUrl;
+  try {
+    pathname = new URL(resumeUrl).pathname;
+  } catch (error) {
+    pathname = resumeUrl;
+  }
+
+  if (!pathname.includes("/uploads/")) return null;
+
+  const uploadDirectory = path.resolve(__dirname, "../uploads");
+  const fileName = path.basename(decodeURIComponent(pathname));
+  const filePath = path.resolve(uploadDirectory, fileName);
+  return filePath.startsWith(`${uploadDirectory}${path.sep}`) ? filePath : null;
+};
 
 //load all user
 
@@ -30,12 +51,11 @@ exports.allUser = async (req, res, next) => {
   }
 };
 
-
 exports.ShowAllUser = async (req, res, next) => {
   try {
     const users = await User.find({ isDeleted: false })
       .sort({ createdAt: -1 })
-      .select("-password")
+      .select("-password");
     res.status(200).json({
       success: true,
       users,
@@ -62,6 +82,99 @@ exports.singleUser = async (req, res, next) => {
 //edit user
 exports.editUser = async (req, res, next) => {
   try {
+    if (Number(req.user.role) === 0) {
+      if (String(req.user._id) !== String(req.params.id)) {
+        return next(
+          new ErrorResponse("You can only edit your own profile", 403),
+        );
+      }
+
+      const currentUser = await User.findById(req.user._id);
+      if (!currentUser) {
+        return next(new ErrorResponse("User not found", 404));
+      }
+
+      const editableFields = [
+        "firstName",
+        "lastName",
+        "phoneNumber",
+        "contactDetails",
+        "education",
+        "skills",
+        "experience",
+        "profileInformation",
+        "resume",
+        "profilePhoto",
+      ];
+      const updates = {};
+      editableFields.forEach((field) => {
+        if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+          updates[field] =
+            typeof req.body[field] === "string"
+              ? req.body[field].trim()
+              : req.body[field];
+        }
+      });
+
+      const nextProfile = { ...currentUser.toObject(), ...updates };
+      if (!nextProfile.firstName || !nextProfile.lastName) {
+        return next(new ErrorResponse("Full name is required", 400));
+      }
+      if (
+        nextProfile.firstName.length > 32 ||
+        nextProfile.lastName.length > 32
+      ) {
+        return next(
+          new ErrorResponse(
+            "First and last name must be 32 characters or fewer",
+            400,
+          ),
+        );
+      }
+
+      const normalizedPhone = String(nextProfile.phoneNumber || "").replace(
+        /[\s().-]/g,
+        "",
+      );
+      if (
+        !/^\+?\d{8,15}$/.test(normalizedPhone) ||
+        !/[1-9]/.test(normalizedPhone)
+      ) {
+        return next(
+          new ErrorResponse(
+            "Enter a valid contact number with 8 to 15 digits",
+            400,
+          ),
+        );
+      }
+      if (
+        !nextProfile.education ||
+        !nextProfile.skills ||
+        !nextProfile.experience
+      ) {
+        return next(
+          new ErrorResponse(
+            "Education, skills, and experience are required",
+            400,
+          ),
+        );
+      }
+
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updates },
+        { new: true },
+      ).select("-password");
+
+      const oldResumePath = getStoredResumePath(currentUser.resume);
+      const newResumePath = getStoredResumePath(updatedUser.resume);
+      if (oldResumePath && oldResumePath !== newResumePath) {
+        await fs.unlink(oldResumePath).catch(() => {});
+      }
+
+      return res.status(200).json({ success: true, user: updatedUser });
+    }
+
     const user = await User.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
     });
@@ -91,6 +204,356 @@ exports.deleteUser = async (req, res, next) => {
   }
 };
 
+exports.getUserApplications = async (req, res, next) => {
+  try {
+    const applications = await UserHistory.find({ user: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "jobId",
+        select: "title companyName location salary description user",
+        populate: {
+          path: "user",
+          select: "firstName lastName companyName email",
+        },
+      })
+      .populate({
+        path: "user",
+        select: "resume",
+      })
+      .lean();
+
+    const formattedApplications = applications.map((application) => {
+      const job = application.jobId || {};
+      const statusHistory = Array.isArray(application.statusHistory)
+        ? application.statusHistory
+            .slice()
+            .sort((first, second) => new Date(first.timestamp) - new Date(second.timestamp))
+            .map((entry) => ({
+              ...entry,
+              status: entry.status,
+              rawStatus: entry.rawStatus,
+              timestamp: entry.timestamp,
+            }))
+        : [];
+
+      return {
+        _id: application._id,
+        jobId: job._id || application.jobId,
+        title: job.title || application.title,
+        companyName: job.companyName || "N/A",
+        location: job.location || application.location,
+        salary: job.salary || application.salary,
+        description: job.description || application.description,
+        applicationStatus: application.applicationStatus || "pending",
+        statusHistory,
+        interview: application.interview || null,
+        feedback: application.feedback || null,
+        resume: application.resume || application.user?.resume || "",
+        coverLetter: application.coverLetter,
+        assessment: application.assessment,
+        appliedDate: application.createdAt,
+        createdAt: application.createdAt,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      applications: formattedApplications,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.submitApplicationFeedback = async (req, res, next) => {
+  try {
+    if (Number(req.user.role) !== 0) {
+      return next(new ErrorResponse("Only users can submit feedback", 403));
+    }
+
+    const rating = Number(req.body.rating);
+    const comment =
+      typeof req.body.comment === "string" ? req.body.comment.trim() : "";
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return next(new ErrorResponse("Rating must be from 1 to 5", 400));
+    }
+    if (!comment || comment.length > 2000) {
+      return next(
+        new ErrorResponse("Feedback is required and must be 2000 characters or fewer", 400),
+      );
+    }
+
+    const existingApplication = await UserHistory.findOne({
+      _id: req.params.applicationId,
+      user: req.user._id,
+    }).select("applicationStatus feedback jobId interview.status");
+    if (!existingApplication) {
+      return next(new ErrorResponse("Application not found", 404));
+    }
+    if (existingApplication.feedback) {
+      return next(new ErrorResponse("Feedback has already been submitted", 409));
+    }
+    const eligibleApplicationStatus = [
+      "selected",
+      "accepted",
+      "rejected",
+    ].includes(existingApplication.applicationStatus);
+    if (
+      !eligibleApplicationStatus &&
+      existingApplication.interview?.status !== "completed"
+    ) {
+      return next(
+        new ErrorResponse("Feedback is available after the application is completed", 400),
+      );
+    }
+
+    const application = await UserHistory.findOneAndUpdate(
+      {
+        _id: req.params.applicationId,
+        user: req.user._id,
+        $or: [
+          { applicationStatus: { $in: ["selected", "accepted", "rejected"] } },
+          { "interview.status": "completed" },
+        ],
+        feedback: { $exists: false },
+      },
+      {
+        $set: {
+          feedback: {
+            rating,
+            comment,
+            user: req.user._id,
+            job: existingApplication.jobId,
+            submittedAt: new Date(),
+          },
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!application) {
+      return next(new ErrorResponse("Feedback has already been submitted", 409));
+    }
+
+    return res.status(201).json({
+      success: true,
+      feedback: application.feedback,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.respondToInterview = async (req, res, next) => {
+  try {
+    if (Number(req.user.role) !== 0) {
+      return next(new ErrorResponse("Only users can respond to interviews", 403));
+    }
+
+    const { response } = req.body;
+    if (!["accepted", "declined"].includes(response)) {
+      return next(new ErrorResponse("Invalid interview response", 400));
+    }
+
+    const application = await UserHistory.findOneAndUpdate(
+      {
+        _id: req.params.applicationId,
+        user: req.user._id,
+        applicationStatus: "interview",
+        "interview.date": { $exists: true },
+        $or: [
+          { "interview.response": { $exists: false } },
+          { "interview.response": "pending" },
+          { "interview.response.status": "pending" },
+        ],
+      },
+      {
+        $set: {
+          "interview.response": response,
+          "interview.respondedAt": new Date(),
+        },
+      },
+      { new: true, runValidators: true },
+    );
+
+    if (!application) {
+      const ownedApplication = await UserHistory.findOne({
+        _id: req.params.applicationId,
+        user: req.user._id,
+      }).select("interview");
+      if (!ownedApplication?.interview) {
+        return next(new ErrorResponse("Scheduled interview not found", 404));
+      }
+      return next(
+        new ErrorResponse("You have already responded to this interview", 409),
+      );
+    }
+
+    const [candidate, job] = await Promise.all([
+      User.findById(application.user).select("firstName lastName"),
+      Job.findById(application.jobId).select("title companyName"),
+    ]);
+    if (!candidate || !job || !application.interview.recruiter) {
+      return next(
+        new ErrorResponse("Interview notification details are incomplete", 500),
+      );
+    }
+
+    const candidateName =
+      `${candidate.firstName || ""} ${candidate.lastName || ""}`.trim() ||
+      "Candidate";
+    const notification = {
+      userId: application.interview.recruiter,
+      applicationId: application._id,
+      notificationType: "interview_response",
+      responseAt: application.interview.respondedAt,
+      candidateName,
+      companyName: job.companyName,
+      jobTitle: job.title,
+      status: response,
+      message: `Candidate ${candidateName} ${response} the interview for ${job.title}.`,
+    };
+
+    try {
+      await Notification.updateOne(
+        {
+          userId: notification.userId,
+          applicationId: notification.applicationId,
+          notificationType: notification.notificationType,
+          responseAt: notification.responseAt,
+        },
+        { $setOnInsert: notification },
+        { upsert: true },
+      );
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+    }
+
+    return res.status(200).json({
+      success: true,
+      interview: application.interview,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const ensureInterviewResponseNotifications = async (recruiterId) => {
+  const respondedApplications = await UserHistory.find({
+    "interview.recruiter": recruiterId,
+    "interview.response": { $in: ["accepted", "declined"] },
+  })
+    .select("user jobId interview updatedAt")
+    .populate("user", "firstName lastName")
+    .populate("jobId", "title companyName")
+    .lean();
+
+  for (const application of respondedApplications) {
+    const candidateName =
+      `${application.user?.firstName || ""} ${application.user?.lastName || ""}`.trim() ||
+      "Candidate";
+    const jobTitle = application.jobId?.title;
+    const responseAt =
+      application.interview.respondedAt || application.updatedAt;
+    if (!jobTitle || !application.jobId?.companyName || !responseAt) continue;
+
+    const response = application.interview.response;
+    await Notification.updateOne(
+      {
+        userId: recruiterId,
+        applicationId: application._id,
+        notificationType: "interview_response",
+        responseAt,
+      },
+      {
+        $setOnInsert: {
+          userId: recruiterId,
+          applicationId: application._id,
+          notificationType: "interview_response",
+          responseAt,
+          candidateName,
+          companyName: application.jobId.companyName,
+          jobTitle,
+          status: response,
+          message: `Candidate ${candidateName} ${response} the interview for ${jobTitle}.`,
+        },
+      },
+      { upsert: true },
+    );
+  }
+};
+
+exports.getUserNotifications = async (req, res, next) => {
+  try {
+    if (Number(req.user.role) === 1) {
+      await ensureInterviewResponseNotifications(req.user._id);
+    }
+
+    const userFilter = { userId: req.user._id };
+    const [notifications, unreadCount] = await Promise.all([
+      Notification.find(userFilter).sort({ createdAt: -1 }).lean(),
+      Notification.countDocuments({ ...userFilter, isRead: false }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      notifications,
+      unreadCount,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.getUnreadNotificationCount = async (req, res, next) => {
+  try {
+    const unreadCount = await Notification.countDocuments({
+      userId: req.user._id,
+      isRead: false,
+    });
+    return res.status(200).json({ success: true, unreadCount });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.markUserNotificationAsRead = async (req, res, next) => {
+  try {
+    const notification = await Notification.findOneAndUpdate(
+      { _id: req.params.notificationId, userId: req.user._id },
+      { $set: { isRead: true } },
+      { new: true },
+    );
+    if (!notification) {
+      return next(new ErrorResponse("Notification not found", 404));
+    }
+
+    const unreadCount = await Notification.countDocuments({
+      userId: req.user._id,
+      isRead: false,
+    });
+    return res.status(200).json({
+      success: true,
+      notification,
+      unreadCount,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.markAllUserNotificationsAsRead = async (req, res, next) => {
+  try {
+    await Notification.updateMany(
+      { userId: req.user._id, isRead: false },
+      { $set: { isRead: true } },
+    );
+    return res.status(200).json({ success: true, unreadCount: 0 });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 // jobs history
 exports.createUserJobsHistory = async (req, res, next) => {
   const { title, description, salary, location, id, coverLetter, assessment } =
@@ -100,13 +563,11 @@ exports.createUserJobsHistory = async (req, res, next) => {
     if (!job) {
       return next(new ErrorResponse("Job not found", 404));
     }
-    if (req.user.role === 1) {
+    if (Number(req.user.role) === 1) {
       return next(new ErrorResponse("Recruiters cannot apply to jobs", 403));
     }
     if (job.user.toString() === req.user._id.toString()) {
-      return next(
-        new ErrorResponse("You cannot apply to your own job", 400)
-      );
+      return next(new ErrorResponse("You cannot apply to your own job", 400));
     }
 
     const existingApplication = await UserHistory.findOne({
@@ -114,7 +575,8 @@ exports.createUserJobsHistory = async (req, res, next) => {
       jobId: id,
     });
     if (existingApplication) {
-      return res.status(400).json({
+      return res.status(409).json({
+        success: false,
         message: "You have already applied for this job.",
       });
     }
@@ -129,21 +591,40 @@ exports.createUserJobsHistory = async (req, res, next) => {
       description,
       salary,
       location,
+      resume: currentUser.resume || "",
       user: req.user._id,
       jobId: id,
       coverLetter,
       assessment,
+      applicationStatus: "pending",
+      statusHistory: [
+        {
+          status: "Applied",
+          rawStatus: "pending",
+          timestamp: new Date(),
+        },
+      ],
     };
 
     const userHistory = await UserHistory.create(addJobHostory);
 
-    res.status(200).json({
+    await User.findByIdAndUpdate(
+      req.user._id,
+      { $addToSet: { jobsHistory: userHistory._id } },
+      { new: true },
+    );
+
+    return res.status(200).json({
       success: true,
       currentUser: userHistory,
     });
-    next();
   } catch (error) {
-    console.log(error);
+    if (error && error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "You have already applied for this job.",
+      });
+    }
     return next(error);
   }
 };

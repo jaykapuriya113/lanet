@@ -9,6 +9,25 @@ import { jobTypeLoadAction } from "../../redux/actions/jobTypeAction";
 import { registerAjobAction } from "../../redux/actions/jobAction";
 import { useNavigate } from "react-router-dom";
 
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const isValidDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || "")) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+};
+
 const validationSchema = yup.object({
   title: yup.string("Enter a job title").required("title is required"),
   companyName: yup
@@ -21,18 +40,29 @@ const validationSchema = yup.object({
   salary: yup.number("Enter a salary").required("Salary is required"),
   location: yup.string("Enter a location").required("Location is required"),
   jobType: yup.string("Enter a Category").required("Category is required"),
+  applicationDeadline: yup
+    .string()
+    .required("Application Deadline is required")
+    .test(
+      "valid-application-deadline",
+      "Enter a valid Application Deadline",
+      (value) => Boolean(value && isValidDate(value)),
+    )
+    .test(
+      "future-application-deadline",
+      "Application Deadline cannot be in the past",
+      (value) => !value || value >= getTodayDate(),
+    ),
 });
 
 const DashCreateJob = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { jobType } = useSelector((state) => state.jobTypeAll);
 
-  //job type
   useEffect(() => {
     dispatch(jobTypeLoadAction());
-  }, []);
-
-  const { jobType } = useSelector((state) => state.jobTypeAll);
+  }, [dispatch]);
 
   const formik = useFormik({
     initialValues: {
@@ -42,191 +72,141 @@ const DashCreateJob = () => {
       salary: "",
       location: "",
       jobType: "",
+      applicationDeadline: "",
       AdditionalInformation: "",
     },
-    validationSchema: validationSchema,
-    onSubmit: (values, actions) => {
-      dispatch(registerAjobAction(values));
-      navigate("/admin/jobs");
+    validationSchema,
+    onSubmit: async (values) => {
+      const createdJob = await dispatch(registerAjobAction(values));
+      if (!createdJob) return;
+
+      navigate("/recruiter/jobs");
       window.location.reload();
     },
   });
 
+  const fieldProps = (name) => ({
+    name,
+    value: formik.values[name],
+    onChange: formik.handleChange,
+    onBlur: formik.handleBlur,
+    error: formik.touched[name] && Boolean(formik.errors[name]),
+    helperText: formik.touched[name] && formik.errors[name],
+  });
+
   return (
-    <>
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        pt: 4,
+      }}
+    >
       <Box
-        sx={{
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          pt: 4,
-        }}
+        onSubmit={formik.handleSubmit}
+        component="form"
+        noValidate
+        className="form_style border-style"
       >
         <Box
-          onSubmit={formik.handleSubmit}
-          component="form"
-          className="form_style border-style"
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            width: "100%",
+          }}
         >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              width: "100%",
-            }}
+          <Typography variant="h5" component="h2" sx={{ pb: 3 }}>
+            Register a Job
+          </Typography>
+          <TextField
+            sx={{ mb: 3 }}
+            fullWidth
+            id="applicationDeadline"
+            label="Application Deadline"
+            type="date"
+            required
+            inputProps={{ min: getTodayDate() }}
+            InputLabelProps={{ shrink: true }}
+            {...fieldProps("applicationDeadline")}
+          />
+          <TextField
+            sx={{ mb: 3 }}
+            fullWidth
+            id="title"
+            label="Title"
+            placeholder="Title"
+            InputLabelProps={{ shrink: true }}
+            {...fieldProps("title")}
+          />
+          <TextField
+            sx={{ mb: 3 }}
+            fullWidth
+            id="description"
+            label="Description"
+            placeholder="Description"
+            InputLabelProps={{ shrink: true }}
+            {...fieldProps("description")}
+          />
+          <TextField
+            sx={{ mb: 3 }}
+            fullWidth
+            id="AdditionalInformation"
+            label="AdditionalInformation"
+            placeholder="AdditionalInformation"
+            InputLabelProps={{ shrink: true }}
+            {...fieldProps("AdditionalInformation")}
+          />
+          <TextField
+            sx={{ mb: 3 }}
+            fullWidth
+            id="companyName"
+            label="companyName"
+            placeholder="Company name"
+            InputLabelProps={{ shrink: true }}
+            {...fieldProps("companyName")}
+          />
+          <TextField
+            sx={{ mb: 3 }}
+            fullWidth
+            id="salary"
+            label="Salary"
+            placeholder="Salary"
+            InputLabelProps={{ shrink: true }}
+            {...fieldProps("salary")}
+          />
+          <TextField
+            sx={{ mb: 3 }}
+            fullWidth
+            id="location"
+            label="Location"
+            placeholder="Location"
+            InputLabelProps={{ shrink: true }}
+            {...fieldProps("location")}
+          />
+          <TextField
+            sx={{ mb: 3 }}
+            fullWidth
+            id="jobType"
+            label="Category"
+            select
+            {...fieldProps("jobType")}
           >
-            <Typography variant="h5" component="h2" sx={{ pb: 3 }}>
-              Register a Job
-            </Typography>
-            <TextField
-              sx={{ mb: 3 }}
-              fullWidth
-              id="title"
-              label="Title"
-              name="title"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              placeholder="Title"
-              value={formik.values.title}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.title && Boolean(formik.errors.title)}
-              helperText={formik.touched.title && formik.errors.title}
-            />
-            <TextField
-              sx={{ mb: 3 }}
-              fullWidth
-              id="description"
-              name="description"
-              label="Description"
-              type="text"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              placeholder="Description"
-              value={formik.values.description}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={
-                formik.touched.description && Boolean(formik.errors.description)
-              }
-              helperText={
-                formik.touched.description && formik.errors.description
-              }
-            />
-            <TextField
-              sx={{ mb: 3 }}
-              fullWidth
-              id="AdditionalInformation"
-              name="AdditionalInformation"
-              label="AdditionalInformation"
-              type="text"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              placeholder="AdditionalInformation"
-              value={formik.values.AdditionalInformation}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={
-                formik.touched.AdditionalInformation &&
-                Boolean(formik.errors.AdditionalInformation)
-              }
-              helperText={
-                formik.touched.AdditionalInformation &&
-                formik.errors.AdditionalInformation
-              }
-            />
-            <TextField
-              sx={{ mb: 3 }}
-              fullWidth
-              id="companyName"
-              name="companyName"
-              label="companyName"
-              type="text"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              placeholder="Description"
-              value={formik.values.companyName}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={
-                formik.touched.companyName && Boolean(formik.errors.companyName)
-              }
-              helperText={
-                formik.touched.companyName && formik.errors.companyName
-              }
-            />
-            <TextField
-              sx={{ mb: 3 }}
-              fullWidth
-              id="salary"
-              name="salary"
-              label="Salary"
-              type="text"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              placeholder="Salary"
-              value={formik.values.salary}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.salary && Boolean(formik.errors.salary)}
-              helperText={formik.touched.salary && formik.errors.salary}
-            />
-            <TextField
-              sx={{ mb: 3 }}
-              fullWidth
-              id="location"
-              name="location"
-              label="Location"
-              type="text"
-              InputLabelProps={{
-                shrink: true,
-              }}
-              placeholder="Location"
-              value={formik.values.location}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.location && Boolean(formik.errors.location)}
-              helperText={formik.touched.location && formik.errors.location}
-            />
-
-            <TextField
-              sx={{ mb: 3 }}
-              fullWidth
-              className="px-2 my-2"
-              variant="outlined"
-              name="jobType"
-              id="jobType"
-              select
-              label="Category"
-              value={formik.values.jobType}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              error={formik.touched.jobType && Boolean(formik.errors.jobType)}
-              helperText={formik.touched.jobType && formik.errors.jobType}
-            >
-              <MenuItem key={""} value={""}></MenuItem>
-
-              {jobType &&
-                jobType.map((cat) => (
-                  <MenuItem key={cat._id} value={cat._id}>
-                    {cat.jobTypeName}
-                  </MenuItem>
-                ))}
-            </TextField>
-
-            <Button fullWidth variant="contained" type="submit">
-              Create job
-            </Button>
-          </Box>
+            <MenuItem value="">Select a category</MenuItem>
+            {jobType?.map((category) => (
+              <MenuItem key={category._id} value={category._id}>
+                {category.jobTypeName}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Button fullWidth variant="contained" type="submit">
+            Create job
+          </Button>
         </Box>
       </Box>
-    </>
+    </Box>
   );
 };
 

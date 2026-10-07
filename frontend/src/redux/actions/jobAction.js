@@ -33,7 +33,7 @@ export const jobLoadAction =
     dispatch({ type: JOB_LOAD_REQUEST });
     try {
       const { data } = await axios.get(
-        `/api/jobs/show/?pageNumber=${pageNumber}&keyword=${keyword}&cat=${cat}&location=${location}`
+        `/api/jobs/show/?pageNumber=${pageNumber}&keyword=${keyword}&cat=${cat}&location=${location}`,
       );
       dispatch({
         type: JOB_LOAD_SUCCESS,
@@ -47,27 +47,21 @@ export const jobLoadAction =
     }
   };
 
-
-  export const allJobLoadAction =
-  () =>
-  async (dispatch) => {
-    dispatch({ type: JOB_LOAD_REQUEST });
-    try {
-      const { data } = await axios.get(
-       "/api/jobs/showalljobs"
-      );
-      dispatch({
-        type: JOB_LOAD_SUCCESS,
-        payload: data,
-      });
-    } catch (error) {
-      dispatch({
-        type: JOB_LOAD_FAIL,
-        payload: error.response.data.error,
-      });
-    }
-  };
-
+export const allJobLoadAction = () => async (dispatch) => {
+  dispatch({ type: JOB_LOAD_REQUEST });
+  try {
+    const { data } = await axios.get("/api/jobs/showalljobs");
+    dispatch({
+      type: JOB_LOAD_SUCCESS,
+      payload: data,
+    });
+  } catch (error) {
+    dispatch({
+      type: JOB_LOAD_FAIL,
+      payload: error.response.data.error,
+    });
+  }
+};
 
 // single job action
 export const jobLoadSingleAction = (id) => async (dispatch) => {
@@ -98,12 +92,14 @@ export const registerAjobAction = (job) => async (dispatch) => {
       payload: data,
     });
     toast.success("Job created successfully");
+    return data;
   } catch (error) {
     dispatch({
       type: REGISTER_JOB_FAIL,
       payload: error.response.data.error,
     });
     toast.error(error.response.data.error);
+    return null;
   }
 };
 
@@ -162,46 +158,6 @@ export const editJobAction = (job_id, formdata, id) => async (dispatch) => {
     console.log(error);
     dispatch({
       type: EDIT_JOB_FAIL,
-      payload: error.response.data.error,
-    });
-  }
-};
-
-export const useApplyLoadJobAction =
-  ({ id }) =>
-  async (dispatch) => {
-    dispatch({ type: USER_APPLY_JOB_REQUEST });
-    try {
-      const { data } = await axios.get(`/api/admin/applied-jobs/${id}?`);
-      // console.log(data);
-      dispatch({
-        type: USER_APPLY_JOB_SUCCESS,
-        payload: data,
-      });
-    } catch (error) {
-      console.log(error);
-      dispatch({
-        type: USER_APPLY_JOB_FAIL,
-        payload: error.response.data.error,
-      });
-    }
-  };
-
-export const updateJobStatusAction = (updatedData) => async (dispatch) => {
-  dispatch({ type: UPDATE_JOB_REQUEST });
-  console.log("??????????");
-  console.log(updatedData);
-  try {
-    const { data } = await axios.patch(`/api/updatestatus`, updatedData);
-    console.log(data);
-    dispatch({
-      type: UPDATE_JOB_SUCCESS,
-      payload: data,
-    });
-  } catch (error) {
-    console.log(error.response.data);
-    dispatch({
-      type: UPDATE_JOB_FAIL,
       payload: error.response.data.error,
     });
   }

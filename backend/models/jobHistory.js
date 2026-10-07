@@ -1,5 +1,17 @@
 const mongoose = require("mongoose");
 const { ObjectId } = mongoose.Schema;
+
+const statusHistoryLabels = {
+  pending: "Applied",
+  applied: "Applied",
+  under_review: "Under Review",
+  shortlisted: "Shortlisted",
+  interview: "Interview",
+  selected: "Selected",
+  accepted: "Selected",
+  rejected: "Rejected",
+};
+
 const jobsHistorySchema = new mongoose.Schema(
   {
     title: {
@@ -18,14 +30,95 @@ const jobsHistorySchema = new mongoose.Schema(
     location: {
       type: String,
     },
+    resume: {
+      type: String,
+      trim: true,
+    },
     interviewDate: {
       type: String,
     },
+    interview: {
+      type: new mongoose.Schema(
+        {
+          date: { type: String, required: true },
+          time: { type: String, required: true },
+          mode: { type: String, enum: ["online"], required: true },
+          meetingLink: { type: String, required: true, trim: true },
+          recruiter: { type: ObjectId, ref: "User", required: true },
+          response: {
+            type: String,
+            enum: ["pending", "accepted", "declined"],
+            default: "pending",
+          },
+          respondedAt: { type: Date },
+          status: {
+            type: String,
+            enum: ["completed"],
+          },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
+    feedback: {
+      type: new mongoose.Schema(
+        {
+          rating: { type: Number, min: 1, max: 5, required: true },
+          comment: { type: String, trim: true, required: true, maxlength: 2000 },
+          user: { type: ObjectId, ref: "User", required: true },
+          job: { type: ObjectId, ref: "Job", required: true },
+          submittedAt: { type: Date, required: true },
+        },
+        { _id: false },
+      ),
+      default: undefined,
+    },
     applicationStatus: {
       type: String,
-      enum: ["pending", "accepted", "rejected"],
+      enum: [
+        "pending",
+        "under_review",
+        "shortlisted",
+        "interview",
+        "selected",
+        "accepted",
+        "rejected",
+      ],
       default: "pending",
     },
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          enum: [
+            "Applied",
+            "Under Review",
+            "Shortlisted",
+            "Interview",
+            "Selected",
+            "Rejected",
+          ],
+          required: true,
+        },
+        rawStatus: {
+          type: String,
+          enum: [
+            "pending",
+            "under_review",
+            "shortlisted",
+            "interview",
+            "selected",
+            "accepted",
+            "rejected",
+          ],
+          required: true,
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     role: {
       type: Number,
       default: 0,
@@ -53,7 +146,32 @@ const jobsHistorySchema = new mongoose.Schema(
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
     timestamps: true,
-  }
+  },
 );
+
+jobsHistorySchema.methods.pushStatusHistory = function (statusKey, timestamp = new Date()) {
+  const normalizedKey = (statusKey || "pending").trim();
+  const statusLabel = statusHistoryLabels[normalizedKey] || "Applied";
+  const history = Array.isArray(this.statusHistory) ? this.statusHistory : [];
+  const lastEntry = history[history.length - 1];
+
+  if (lastEntry && (lastEntry.rawStatus === normalizedKey || lastEntry.status === statusLabel)) {
+    return false;
+  }
+
+  this.statusHistory = [
+    ...history,
+    {
+      status: statusLabel,
+      rawStatus: normalizedKey,
+      timestamp,
+    },
+  ];
+
+  return true;
+};
+
+jobsHistorySchema.index({ user: 1, jobId: 1 }, { unique: true });
+
 const UserHistory = new mongoose.model("UserHistory", jobsHistorySchema);
 module.exports = UserHistory;

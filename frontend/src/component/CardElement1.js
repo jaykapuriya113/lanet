@@ -1,9 +1,60 @@
 import * as React from "react";
+import axios from "axios";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
-import { IconButton, useTheme } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Alert,
+  Rating,
+  TextField,
+  Step,
+  StepLabel,
+  Stepper,
+  useTheme,
+} from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import { Link } from "react-router-dom";
+
+const STATUS_STEPS = [
+  "Applied",
+  "Under Review",
+  "Shortlisted",
+  "Interview",
+  "Selected / Rejected",
+];
+
+const STATUS_LABELS = {
+  pending: "Applied",
+  applied: "Applied",
+  under_review: "Under Review",
+  shortlisted: "Shortlisted",
+  interview: "Interview",
+  selected: "Selected",
+  accepted: "Selected",
+  rejected: "Rejected",
+};
+
+const STATUS_STEPS_BY_VALUE = {
+  pending: 0,
+  applied: 0,
+  under_review: 1,
+  shortlisted: 2,
+  interview: 3,
+  selected: 4,
+  accepted: 4,
+  rejected: 4,
+};
+
+const formatInterviewTime = (value) => {
+  if (!value) return "Not available";
+  const [hour, minute] = value.split(":").map(Number);
+  return `${hour % 12 || 12}:${String(minute).padStart(2, "0")} ${hour >= 12 ? "PM" : "AM"}`;
+};
 
 const CardElement1 = ({
   jobTitle,
@@ -13,75 +64,349 @@ const CardElement1 = ({
   id,
   salary,
   applicationStatus,
+  companyName,
+  appliedDate,
+  resume,
+  jobId,
+  interview,
+  feedback,
 }) => {
   const { palette } = useTheme();
+  const getInterviewResponse = (value) =>
+    typeof value === "string" ? value : value?.status || "pending";
+  const [interviewResponse, setInterviewResponse] = React.useState(
+    getInterviewResponse(interview?.response),
+  );
+  const [savingInterviewResponse, setSavingInterviewResponse] =
+    React.useState(false);
+  const [interviewResponseError, setInterviewResponseError] =
+    React.useState("");
+  const [savedFeedback, setSavedFeedback] = React.useState(feedback || null);
+  const [feedbackRating, setFeedbackRating] = React.useState(0);
+  const [feedbackComment, setFeedbackComment] = React.useState("");
+  const [savingFeedback, setSavingFeedback] = React.useState(false);
+  const [feedbackError, setFeedbackError] = React.useState("");
 
-  const getStatusColor = () => {
-    if (applicationStatus === "accepted") {
-      return "green";
-    } else if (applicationStatus === "rejected") {
-      return "red";
-    } else {
-      return palette.text.secondary;
+  React.useEffect(() => {
+    setInterviewResponse(getInterviewResponse(interview?.response));
+  }, [interview]);
+
+  React.useEffect(() => {
+    setSavedFeedback(feedback || null);
+  }, [feedback]);
+
+  const submitFeedback = async () => {
+    setSavingFeedback(true);
+    setFeedbackError("");
+    try {
+      const { data } = await axios.post(
+        `/api/user/applications/${encodeURIComponent(id)}/feedback`,
+        { rating: feedbackRating, comment: feedbackComment },
+      );
+      setSavedFeedback(data.feedback);
+    } catch (error) {
+      setFeedbackError(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Unable to submit feedback.",
+      );
+    } finally {
+      setSavingFeedback(false);
     }
   };
 
-  const statusColor = getStatusColor();
+  const respondToInterview = async (response) => {
+    setSavingInterviewResponse(true);
+    setInterviewResponseError("");
+    try {
+      const { data } = await axios.patch(
+        `/api/user/applications/${encodeURIComponent(id)}/interview-response`,
+        { response },
+      );
+      setInterviewResponse(getInterviewResponse(data.interview.response));
+    } catch (error) {
+      setInterviewResponseError(
+        error.response?.data?.error ||
+          error.response?.data?.message ||
+          "Unable to save your interview response.",
+      );
+    } finally {
+      setSavingInterviewResponse(false);
+    }
+  };
+
+  const normalizedStatus = String(applicationStatus || "pending")
+    .trim()
+    .toLowerCase();
+  const statusLabel =
+    STATUS_LABELS[normalizedStatus] ||
+    normalizedStatus
+      .replace(/[_-]/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const activeStep = STATUS_STEPS_BY_VALUE[normalizedStatus] ?? -1;
+  const statusColor =
+    normalizedStatus === "rejected"
+      ? "error"
+      : normalizedStatus === "selected" || normalizedStatus === "accepted"
+        ? "success"
+        : "primary";
+  const formattedAppliedDate = appliedDate
+    ? new Date(appliedDate).toLocaleDateString()
+    : "Not available";
 
   return (
-    <Card sx={{ mb: 3 }}>
+    <Card id={id ? `application-${id}` : undefined} sx={{ mb: 3 }}>
       <CardContent>
-        <Typography
-          sx={{
-            fontSize: 14,
-            color: palette.secondary.main,
-            fontWeight: "bold",
-            fontFamily: "Arial, sans-serif",
-          }}
-          gutterBottom
-        >
-          <IconButton disableRipple>
-            <LocationOnIcon
-              sx={{ color: palette.secondary.main, fontSize: 16 }}
-            />
-          </IconButton>{" "}
-          {location}
-        </Typography>
         <Typography
           variant="h5"
           component="div"
-          sx={{ mb: 1, fontFamily: "Georgia, serif" }}
+          sx={{ mb: 1, fontWeight: 700 }}
         >
           {jobTitle}
         </Typography>
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{
-            mb: 2,
-            fontFamily: "Roboto, sans-serif",
-            fontStyle: "italic",
-          }}
-        >
-          {category}
-        </Typography>
-        <Typography
-          variant="body2"
-          color={statusColor}
-          sx={{
-            mb: 2,
-            fontFamily: "Roboto, sans-serif",
-            fontStyle: "italic",
-          }}
-        >
-          applicationStatus: {applicationStatus}
-        </Typography>
+        {companyName && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: 1,
+              fontFamily: "Roboto, sans-serif",
+              fontWeight: 600,
+            }}
+          >
+            {companyName}
+          </Typography>
+        )}
+        <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+          <IconButton disableRipple size="small" sx={{ pl: 0 }}>
+            <LocationOnIcon
+              sx={{ color: palette.secondary.main, fontSize: 18 }}
+            />
+          </IconButton>
+          <Typography variant="body2">
+            {location || "Location not listed"}
+          </Typography>
+        </Box>
         <Typography variant="body2" sx={{ mb: 2 }}>
-          {description?.split(" ")?.slice(0, 15)?.join(" ") + "..."}
+          Applied: {formattedAppliedDate}
         </Typography>
-        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-          Salary: ${salary}
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+          <Typography variant="subtitle2">Current status</Typography>
+          <Chip label={statusLabel} color={statusColor} size="small" />
+        </Box>
+        <Box sx={{ overflowX: "auto", py: 1, mb: 2 }}>
+          <Stepper
+            activeStep={activeStep}
+            alternativeLabel
+            sx={{ minWidth: 560 }}
+          >
+            {STATUS_STEPS.map((step) => (
+              <Step key={step}>
+                <StepLabel>{step}</StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </Box>
+        {interview?.status === "completed" &&
+          normalizedStatus !== "interview" && (
+            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700 }}>
+              Interview Completed
+            </Typography>
+          )}
+        {normalizedStatus === "interview" && interview && (
+          <Box
+            sx={{
+              mb: 2,
+              p: 2,
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 1,
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
+              {interview.status === "completed"
+                ? "Interview Completed"
+                : "Interview Scheduled"}
+            </Typography>
+            <Typography variant="body2">
+              Date:{" "}
+              {new Date(`${interview.date}T12:00:00`).toLocaleDateString(
+                undefined,
+                {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                },
+              )}
+            </Typography>
+            <Typography variant="body2">
+              Time: {formatInterviewTime(interview.time)}
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1.5 }}>
+              Mode: Online
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1.5 }}>
+              Your response:{" "}
+              {interviewResponse.charAt(0).toUpperCase() +
+                interviewResponse.slice(1)}
+            </Typography>
+            {interviewResponseError && (
+              <Alert severity="error" sx={{ mb: 1.5 }}>
+                {interviewResponseError}
+              </Alert>
+            )}
+            {interviewResponse === "pending" && (
+              <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
+                <Button
+                  variant="contained"
+                  disabled={savingInterviewResponse}
+                  onClick={() => respondToInterview("accepted")}
+                >
+                  {savingInterviewResponse ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    "Accept Interview"
+                  )}
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  disabled={savingInterviewResponse}
+                  onClick={() => respondToInterview("declined")}
+                >
+                  Decline Interview
+                </Button>
+              </Box>
+            )}
+            <Typography
+              variant="body2"
+              sx={{ mb: 1.5, overflowWrap: "anywhere" }}
+            >
+              Meeting Link:{" "}
+              <Box
+                component="a"
+                href={interview.meetingLink}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {interview.meetingLink}
+              </Box>
+            </Typography>
+            <Button
+              component="a"
+              href={interview.meetingLink}
+              target="_blank"
+              rel="noreferrer"
+              variant="contained"
+              disabled={!interview.meetingLink}
+            >
+              Join Interview
+            </Button>
+          </Box>
+        )}
+        {(["selected", "accepted", "rejected"].includes(normalizedStatus) ||
+          interview?.status === "completed") && (
+          <Box
+            sx={{
+              mb: 2,
+              p: 2,
+              border: 1,
+              borderColor: "divider",
+              borderRadius: 1,
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
+              Feedback &amp; Rating
+            </Typography>
+            {savedFeedback ? (
+              <>
+                <Rating value={savedFeedback.rating} readOnly />
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  {savedFeedback.comment}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Submitted{" "}
+                  {new Date(savedFeedback.submittedAt).toLocaleDateString()}
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Share your feedback about the hiring process.
+                </Typography>
+                <Rating
+                  value={feedbackRating}
+                  onChange={(_, value) => setFeedbackRating(value || 0)}
+                  aria-label="Feedback rating"
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  minRows={3}
+                  label="Feedback"
+                  value={feedbackComment}
+                  onChange={(event) => setFeedbackComment(event.target.value)}
+                  inputProps={{ maxLength: 2000 }}
+                  sx={{ my: 1 }}
+                />
+                {feedbackError && (
+                  <Alert severity="error" sx={{ mb: 1 }}>
+                    {feedbackError}
+                  </Alert>
+                )}
+                <Button
+                  variant="contained"
+                  disabled={
+                    savingFeedback ||
+                    feedbackRating < 1 ||
+                    !feedbackComment.trim()
+                  }
+                  onClick={submitFeedback}
+                >
+                  {savingFeedback ? (
+                    <CircularProgress size={20} />
+                  ) : (
+                    "Submit Feedback"
+                  )}
+                </Button>
+              </>
+            )}
+          </Box>
+        )}
+        {category && (
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {category}
+          </Typography>
+        )}
+        {description && (
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            {description.split(" ").slice(0, 15).join(" ")}
+            {description.split(" ").length > 15 ? "..." : ""}
+          </Typography>
+        )}
+        {salary && (
+          <Typography variant="body2" sx={{ fontWeight: "bold", mb: 2 }}>
+            Salary: ${salary}
+          </Typography>
+        )}
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+          {resume && (
+            <Button
+              component="a"
+              href={resume}
+              target="_blank"
+              rel="noreferrer"
+              variant="outlined"
+            >
+              View Resume
+            </Button>
+          )}
+          {jobId && (
+            <Button component={Link} to={`/job/${jobId}`} variant="outlined">
+              View Details
+            </Button>
+          )}
+        </Box>
       </CardContent>
     </Card>
   );

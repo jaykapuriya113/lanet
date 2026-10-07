@@ -9,6 +9,7 @@ import { Avatar, IconButton, Tooltip, useTheme } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import { Link } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
+import SaveJobButton from "./SaveJobButton";
 
 const CardElement = ({
   jobTitle,
@@ -19,9 +20,11 @@ const CardElement = ({
   profilePhoto,
   AdditionalInformation,
   companyName,
+  onRemove,
+  detailsLabel = "More Details",
 }) => {
   const { palette } = useTheme();
-console.log(profilePhoto)
+  console.log(profilePhoto);
   return (
     <Card sx={{ minWidth: 275, mb: 2, mt: 2 }}>
       <CardContent sx={{ mb: -1.5 }}>
@@ -44,7 +47,7 @@ console.log(profilePhoto)
             {location}
           </Typography>
 
-         <Tooltip title="Profile photo">
+          <Tooltip title="Profile photo">
             <IconButton sx={{ ml: 74 }}>
               <Avatar
                 alt=""
@@ -86,9 +89,15 @@ console.log(profilePhoto)
               style={{ textDecoration: "none", color: "white", boxShadow: 0 }}
               to={`/job/${id}`}
             >
-              More Details
+              {detailsLabel}
             </Link>
           </Button>
+          <SaveJobButton jobId={id} size="small" />
+          {onRemove && (
+            <Button size="small" color="error" onClick={onRemove}>
+              Remove
+            </Button>
+          )}
         </CardActions>
       </CardContent>
     </Card>

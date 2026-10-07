@@ -10,3 +10,7 @@ nose/
 
 # Ignore environment files
 .env
+
+
+node_modules/
+.env

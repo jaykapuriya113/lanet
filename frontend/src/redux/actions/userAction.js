@@ -10,6 +10,9 @@ import {
   USER_APPLY_JOB_FAIL,
   USER_APPLY_JOB_REQUEST,
   USER_APPLY_JOB_SUCCESS,
+  USER_APPLICATIONS_LOAD_FAIL,
+  USER_APPLICATIONS_LOAD_REQUEST,
+  USER_APPLICATIONS_LOAD_SUCCESS,
   USER_DELETE_FAIL,
   USER_DELETE_REQUEST,
   USER_DELETE_SUCCESS,
@@ -41,11 +44,14 @@ export const userSignInAction = (user) => async (dispatch) => {
     });
     toast.success("Login Successfully!");
   } catch (error) {
+    const message =
+      error.response?.data?.error ||
+      "Unable to reach the login service. Please try again.";
     dispatch({
       type: USER_SIGNIN_FAIL,
-      payload: error.response.data.error,
+      payload: message,
     });
-    toast.error(error.response.data.error);
+    toast.error(message);
   }
 };
 
@@ -98,12 +104,12 @@ export const userProfileAction = () => async (dispatch) => {
     const { data } = await axios.get("/api/me");
     dispatch({
       type: USER_LOAD_SUCCESS,
-      payload: data,
+      payload: { user: data.user || data },
     });
   } catch (error) {
     dispatch({
       type: USER_LOAD_FAIL,
-      payload: error.response.data.error,
+      payload: error.response?.data?.error || "Unable to load profile",
     });
   }
 };
@@ -113,7 +119,7 @@ export const allUserAction = (page, pageSize) => async (dispatch) => {
   dispatch({ type: ALL_USER_LOAD_REQUEST });
   try {
     const { data } = await axios.get(
-      `/api/allusers?pageNumber=${page}&pageSize=${pageSize}`
+      `/api/allusers?pageNumber=${page}&pageSize=${pageSize}`,
     );
     dispatch({
       type: ALL_USER_LOAD_SUCCESS,
@@ -130,9 +136,7 @@ export const allUserAction = (page, pageSize) => async (dispatch) => {
 export const allShowUserAction = () => async (dispatch) => {
   dispatch({ type: ALL_USER_LOAD_REQUEST });
   try {
-    const { data } = await axios.get(
-     "/api/showallusers"
-    );
+    const { data } = await axios.get("/api/showallusers");
     dispatch({
       type: ALL_USER_LOAD_SUCCESS,
       payload: data,
@@ -144,6 +148,22 @@ export const allShowUserAction = () => async (dispatch) => {
     });
   }
 };
+export const loadUserApplicationsAction = () => async (dispatch) => {
+  dispatch({ type: USER_APPLICATIONS_LOAD_REQUEST });
+  try {
+    const { data } = await axios.get("/api/user/applications");
+    dispatch({
+      type: USER_APPLICATIONS_LOAD_SUCCESS,
+      payload: data.applications || [],
+    });
+  } catch (error) {
+    dispatch({
+      type: USER_APPLICATIONS_LOAD_FAIL,
+      payload: error.response?.data?.error || "Unable to load applications",
+    });
+  }
+};
+
 //user job apply action
 export const userApplyJobAction = (Job) => async (dispatch) => {
   dispatch({ type: USER_APPLY_JOB_REQUEST });
@@ -155,13 +175,17 @@ export const userApplyJobAction = (Job) => async (dispatch) => {
       type: USER_APPLY_JOB_SUCCESS,
       payload: data,
     });
+    await dispatch(userProfileAction());
+    await dispatch(loadUserApplicationsAction());
     toast.success("Apply Successfully for this Job!");
   } catch (error) {
     dispatch({
       type: USER_APPLY_JOB_FAIL,
-      payload: error.response.data.message,
+      payload: error.response?.data?.message || "Could not apply for this job",
     });
-    toast.error(error.response.data.message);
+    toast.error(
+      error.response?.data?.message || "Could not apply for this job",
+    );
   }
 };
 //user Delete action

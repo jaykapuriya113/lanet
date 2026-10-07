@@ -15,10 +15,8 @@ import { Link, useNavigate } from "react-router-dom";
 const validationSchema = yup.object().shape({
   profilePhoto: yup.string().required("Profile photo is required"),
   role: yup.string().required("Role is required"),
-  resume: yup.string().when("role", (role, schema) => {
-    return role === "0"
-      ? schema.required("Resume is required")
-      : schema;
+  resume: yup.string().when("role", ([role], schema) => {
+    return role === "0" ? schema.required("Resume is required") : schema;
   }),
   firstName: yup
     .string()
@@ -82,7 +80,7 @@ const Register = () => {
           "Content-Type": "multipart/form-data",
         },
       });
-      return data.url;
+      return data;
     } catch (err) {
       console.error(err);
       return null;
@@ -97,12 +95,19 @@ const Register = () => {
     }
 
     setProfileLoading(true);
-    const url = await uploadFileToServer(file);
-    if (url) {
-      formik.setFieldValue("profilePhoto", url);
-      setImages(url);
+    setIsUploading(true);
+    const upload = await uploadFileToServer(file);
+    if (upload?.url) {
+      formik.setFieldValue("profilePhoto", upload.url);
+      setImages(upload.url);
+    } else {
+      formik.setFieldError(
+        "profilePhoto",
+        "Profile photo upload failed. Start the backend and try again.",
+      );
     }
     setProfileLoading(false);
+    setIsUploading(false);
   };
 
   const resumeUpload = async (event) => {
@@ -113,11 +118,18 @@ const Register = () => {
     }
 
     setResumeLoading(true);
-    const url = await uploadFileToServer(file);
-    if (url) {
-      formik.setFieldValue("resume", url);
+    setIsUploading(true);
+    const upload = await uploadFileToServer(file);
+    if (upload?.url) {
+      formik.setFieldValue("resume", upload.url);
+    } else {
+      formik.setFieldError(
+        "resume",
+        "Resume upload failed. Start the backend and try again.",
+      );
     }
     setResumeLoading(false);
+    setIsUploading(false);
   };
 
   return (
@@ -327,6 +339,7 @@ const Register = () => {
             )}
             <Button
               type="submit"
+              disabled={isUploading || profileLoading || resumeLoading}
               variant="contained"
               sx={{
                 color: "white",

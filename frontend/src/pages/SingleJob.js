@@ -20,6 +20,8 @@ import { jobLoadSingleAction } from "../redux/actions/jobAction";
 import Button from "@mui/material/Button";
 import { userApplyJobAction } from "../redux/actions/userAction";
 import { Avatar, IconButton, Tooltip, useTheme } from "@mui/material";
+import SaveJobButton from "../component/SaveJobButton";
+import { savedJobsLoadAction } from "../redux/actions/savedJobAction";
 
 const SingleJob = () => {
   const dispatch = useDispatch();
@@ -44,6 +46,12 @@ const SingleJob = () => {
   useEffect(() => {
     dispatch(jobLoadSingleAction(id));
   }, [dispatch, id]);
+
+  useEffect(() => {
+    if (userInfo && Number(userInfo.role?.role ?? userInfo?.role ?? 0) === 0) {
+      dispatch(savedJobsLoadAction(userInfo.role?._id || userInfo?._id));
+    }
+  }, [dispatch, userInfo]);
 
   const onSubmitHandler = (e) => {
     e.preventDefault();
@@ -70,7 +78,7 @@ const SingleJob = () => {
     }));
   };
 
-  const isRecruiter = userInfo?.role?.role === 1;
+  const isRecruiter = Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 1;
   const isOwner = singleJob
     ? String(singleJob.user?._id || singleJob.user) ===
       String(userInfo?.role?._id)
@@ -111,13 +119,22 @@ const SingleJob = () => {
                     }}
                   >
                     <CardContent>
-                      <Typography
-                        variant="h5"
-                        component="h2"
-                        sx={{ fontWeight: 700 }}
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
                       >
-                        {singleJob && singleJob.title}
-                      </Typography>
+                        <Typography
+                          variant="h5"
+                          component="h2"
+                          sx={{ fontWeight: 700 }}
+                        >
+                          {singleJob && singleJob.title}
+                        </Typography>
+                        {singleJob && <SaveJobButton jobId={singleJob._id} />}
+                      </Box>
 
                       <Typography
                         variant="subtitle1"
@@ -129,7 +146,13 @@ const SingleJob = () => {
                       >
                         {singleJob && singleJob.companyName}
                       </Typography>
-                      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          mb: 2,
+                        }}
+                      >
                         <Tooltip title="Company logo">
                           <IconButton sx={{ p: 0 }}>
                             <Avatar
@@ -153,6 +176,18 @@ const SingleJob = () => {
                       >
                         Location: {singleJob && singleJob.location}
                       </Typography>
+
+                      {singleJob?.applicationDeadline && (
+                        <Typography
+                          variant="body1"
+                          sx={{ fontWeight: 600, fontSize: "16px", mt: 1 }}
+                        >
+                          Application Deadline:{" "}
+                          {new Date(singleJob.applicationDeadline)
+                            .toISOString()
+                            .slice(0, 10)}
+                        </Typography>
+                      )}
 
                       <Typography variant="body2" sx={{ mt: 2 }}>
                         <Box
@@ -192,6 +227,7 @@ const SingleJob = () => {
                     </CardContent>
                   </Card>
                 )}
+
                 <br />
                 {showForm && canApply && (
                   <>
@@ -264,20 +300,28 @@ const SingleJob = () => {
               </Box>
               <Box sx={{ flex: 1, p: 2 }}>
                 <Card sx={{ p: 2 }}>
-                {canApply ? (
-                  <Button
-                    onClick={applyForAJob}
-                    sx={{ fontSize: "13px" }}
-                    variant="contained"
-                  >
-                    Apply for this Job
-                  </Button>
-                ) : (
-                  <Button sx={{ fontSize: "13px" }} variant="contained" disabled>
-                    {userInfo ? (isOwner ? "Owner cannot apply" : "Recruiters cannot apply") : "Login to apply"}
-                  </Button>
-                )}
-              </Card>
+                  {canApply ? (
+                    <Button
+                      onClick={applyForAJob}
+                      sx={{ fontSize: "13px" }}
+                      variant="contained"
+                    >
+                      Apply for this Job
+                    </Button>
+                  ) : (
+                    <Button
+                      sx={{ fontSize: "13px" }}
+                      variant="contained"
+                      disabled
+                    >
+                      {userInfo
+                        ? isOwner
+                          ? "Owner cannot apply"
+                          : "Recruiters cannot apply"
+                        : "Login to apply"}
+                    </Button>
+                  )}
+                </Card>
               </Box>
             </Stack>
           </Container>

@@ -8,14 +8,15 @@ import "react-toastify/dist/ReactToastify.css";
 import { ProSidebarProvider } from "react-pro-sidebar";
 import LogIn from "./pages/LogIn";
 import UserDashboard from "./pages/user/UserDashboard";
+import CompleteProfile from "./pages/user/CompleteProfile";
 import UserRoute from "./component/UserRoute";
 import AdminRoute from "./component/AdminRoute";
 import Layout from "./pages/global/Layout";
 import UserJobsHistory from "./pages/user/UserJobsHistory";
+import SavedJobs from "./pages/user/SavedJobs";
 import UserInfoDashboard from "./pages/user/UserInfoDashboard";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import SingleJob from "./pages/SingleJob";
-import DashUsers from "./pages/admin/DashUsers";
 import DashJobs from "./pages/admin/DashJobs";
 import Register from "./pages/Register";
 import DashCategory from "./pages/admin/DashCategory";
@@ -36,23 +37,34 @@ import DashAllUsers from "./component/mainadmin/DashUser";
 import DashAdminInfo from "./component/mainadmin/DashAdminInfo";
 import DashAllJobs from "./component/mainadmin/DashAllJobs";
 import DashAllCategory from "./component/mainadmin/DashAllCategory";
+import RecruiterDashboard from "./pages/admin/RecruiterDashboard";
+import DashUsers from "./pages/admin/DashUsers";
+import ApplicantReview from "./pages/admin/ApplicantReview";
+import SuitableCandidates from "./pages/admin/SuitableCandidates";
+import PlatformFeedback from "./pages/admin/PlatformFeedback";
 
 //HOC
 const UserDashboardHOC = Layout(UserDashboard);
+const CompleteProfileHOC = Layout(CompleteProfile);
 const UserJobsHistoryHOC = Layout(UserJobsHistory);
+const SavedJobsHOC = Layout(SavedJobs);
 const UserInfoDashboardHOC = Layout(UserInfoDashboard);
 const AdminDashboardHOC = Layout(AdminDashboard);
-const DashUsersHOC = Layout(DashUsers);
 const DashJobsHOC = Layout(DashJobs);
 const DashCategoryHOC = Layout(DashCategory);
 const DashCreateJobHOC = Layout(DashCreateJob);
 const DashCreateCategoryHOC = Layout(DashCreateCategory);
 const DashAdminChatHOC = Layout(AdminChat);
 const DashUSerChatHOC = Layout(UserChat);
-const DashAllUsersHOC = Layout(DashAllUsers);
 const DashAdminInfoHOC = Layout(DashAdminInfo);
 const DashAllJobsHOC = Layout(DashAllJobs);
 const DashAllCategoryHOC = Layout(DashAllCategory);
+const DashAllUsersHOC = Layout(DashAllUsers);
+const RecruiterDashboardHOC = Layout(RecruiterDashboard);
+const DashUsersHOC = Layout(DashUsers);
+const ApplicantReviewHOC = Layout(ApplicantReview);
+const SuitableCandidatesHOC = Layout(SuitableCandidates);
+const PlatformFeedbackHOC = Layout(PlatformFeedback);
 
 const appID = "2409544426dbdcb4";
 const region = "us";
@@ -66,7 +78,7 @@ CometChat.init(appID, appSetting).then(
   },
   (error) => {
     console.log("Initialization failed with error:", error);
-  }
+  },
 );
 
 const App = () => {
@@ -89,7 +101,15 @@ const App = () => {
               <Route path="/search" element={<YoutubeVideo />} />
               <Route path="/job/:id" element={<SingleJob />} />
               <Route
-                path="/admin/info"
+                path="/recruiter/dashboard"
+                element={
+                  <AdminRoute>
+                    <RecruiterDashboardHOC />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruiter/info"
                 element={
                   <AdminRoute>
                     <AdminDashboardHOC />
@@ -97,15 +117,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/admin/users"
-                element={
-                  <AdminRoute>
-                    <DashUsersHOC />
-                  </AdminRoute>
-                }
-              />
-              <Route
-                path="/admin/jobs"
+                path="/recruiter/jobs"
                 element={
                   <AdminRoute>
                     <DashJobsHOC />
@@ -113,7 +125,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/admin/category"
+                path="/recruiter/category"
                 element={
                   <AdminRoute>
                     <DashCategoryHOC />
@@ -121,7 +133,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/admin/job/create"
+                path="/recruiter/job/create"
                 element={
                   <AdminRoute>
                     <DashCreateJobHOC />
@@ -129,7 +141,7 @@ const App = () => {
                 }
               />
               <Route
-                path="/admin/category/create"
+                path="/recruiter/category/create"
                 element={
                   <AdminRoute>
                     <DashCreateCategoryHOC />
@@ -137,10 +149,42 @@ const App = () => {
                 }
               />
               <Route
-                path="/admin/chat"
+                path="/recruiter/chat"
                 element={
                   <AdminRoute>
                     <DashAdminChatHOC />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruiter/platform-feedback"
+                element={
+                  <AdminRoute>
+                    <PlatformFeedbackHOC />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruiter/users"
+                element={
+                  <AdminRoute>
+                    <DashUsersHOC />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruiter/application/:applicationId"
+                element={
+                  <AdminRoute>
+                    <ApplicantReviewHOC />
+                  </AdminRoute>
+                }
+              />
+              <Route
+                path="/recruiter/suitable-candidates"
+                element={
+                  <AdminRoute>
+                    <SuitableCandidatesHOC />
                   </AdminRoute>
                 }
               />
@@ -185,10 +229,26 @@ const App = () => {
                 }
               />
               <Route
+                path="/user/complete-profile"
+                element={
+                  <UserRoute>
+                    <CompleteProfileHOC />
+                  </UserRoute>
+                }
+              />
+              <Route
                 path="/user/jobs"
                 element={
                   <UserRoute>
                     <UserJobsHistoryHOC />
+                  </UserRoute>
+                }
+              />
+              <Route
+                path="/user/saved-jobs"
+                element={
+                  <UserRoute>
+                    <SavedJobsHOC />
                   </UserRoute>
                 }
               />

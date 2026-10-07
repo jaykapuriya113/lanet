@@ -9,12 +9,19 @@ import Slide from "@mui/material/Slide";
 import TextField from "@mui/material/TextField";
 import { useDispatch, useSelector } from "react-redux";
 import axios from "axios";
-import { editUserAction } from "../../redux/actions/userAction";
+import { toast } from "react-toastify";
+import { userProfileAction } from "../../redux/actions/userAction";
 
 const INITIAL_STATE = {
   firstName: "",
   lastName: "",
   email: "",
+  phoneNumber: "",
+  contactDetails: "",
+  education: "",
+  skills: "",
+  experience: "",
+  profileInformation: "",
   resume: "",
   profilePhoto: "",
 };
@@ -45,6 +52,13 @@ const EditUser = (props) => {
     setFormdata({
       firstName: fn,
       lastName: ln,
+      email: user && user.email,
+      phoneNumber: user && user.phoneNumber,
+      contactDetails: user && user.contactDetails,
+      education: user && user.education,
+      skills: user && user.skills,
+      experience: user && user.experience,
+      profileInformation: user && user.profileInformation,
       resume: re,
       profilePhoto: pr,
     });
@@ -59,11 +73,18 @@ const EditUser = (props) => {
     setFormdata({ ...formdata, [name]: value });
   };
 
-  const onSubmitHandler = (e) => {
+  const onSubmitHandler = async (e) => {
     e.preventDefault();
-    dispatch(editUserAction(user && user._id, formdata));
-    window.location.reload();
-    setOpen(!open);
+    try {
+      await axios.patch(`/api/user/edit/${user._id}`, formdata);
+      await dispatch(userProfileAction());
+      toast.success("Profile updated successfully.");
+      setOpen(false);
+    } catch (error) {
+      toast.error(
+        error.response?.data?.error || "Unable to update your profile.",
+      );
+    }
   };
 
   const uploadFileToServer = async (file) => {
@@ -80,7 +101,7 @@ const EditUser = (props) => {
           "Content-Type": "multipart/form-data",
         },
       });
-      return data.url;
+      return data;
     } catch (err) {
       console.error(err);
       return null;
@@ -95,13 +116,13 @@ const EditUser = (props) => {
     }
 
     setProfileLoading(true);
-    const url = await uploadFileToServer(file);
-    if (url) {
+    const upload = await uploadFileToServer(file);
+    if (upload?.url) {
       setFormdata((prevData) => ({
         ...prevData,
-        profilePhoto: url,
+        profilePhoto: upload.url,
       }));
-      setProfilePreview(url);
+      setProfilePreview(upload.url);
     }
     setProfileLoading(false);
   };
@@ -114,11 +135,11 @@ const EditUser = (props) => {
     }
 
     setResumeLoading(true);
-    const url = await uploadFileToServer(file);
-    if (url) {
+    const upload = await uploadFileToServer(file);
+    if (upload?.url) {
       setFormdata((prevData) => ({
         ...prevData,
-        resume: url,
+        resume: upload.url,
       }));
     }
     setResumeLoading(false);
@@ -205,6 +226,67 @@ const EditUser = (props) => {
                   />
                   <br />
                   <br />
+                  <TextField
+                    sx={{ mb: 3 }}
+                    fullWidth
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    label="Phone Number"
+                    type="tel"
+                    value={formdata.phoneNumber || ""}
+                    onChange={changeHandler}
+                  />
+                  <TextField
+                    sx={{ mb: 3 }}
+                    fullWidth
+                    id="contactDetails"
+                    name="contactDetails"
+                    label="Additional Contact Details"
+                    value={formdata.contactDetails || ""}
+                    onChange={changeHandler}
+                  />
+                  <TextField
+                    sx={{ mb: 3 }}
+                    fullWidth
+                    id="education"
+                    name="education"
+                    label="Education"
+                    value={formdata.education || ""}
+                    onChange={changeHandler}
+                  />
+                  <TextField
+                    sx={{ mb: 3 }}
+                    fullWidth
+                    id="skills"
+                    name="skills"
+                    label="Skills"
+                    multiline
+                    minRows={2}
+                    value={formdata.skills || ""}
+                    onChange={changeHandler}
+                  />
+                  <TextField
+                    sx={{ mb: 3 }}
+                    fullWidth
+                    id="experience"
+                    name="experience"
+                    label="Experience"
+                    multiline
+                    minRows={2}
+                    value={formdata.experience || ""}
+                    onChange={changeHandler}
+                  />
+                  <TextField
+                    sx={{ mb: 3 }}
+                    fullWidth
+                    id="profileInformation"
+                    name="profileInformation"
+                    label="Profile Information"
+                    multiline
+                    minRows={3}
+                    value={formdata.profileInformation || ""}
+                    onChange={changeHandler}
+                  />
                   <TextField
                     sx={{
                       mb: 0,

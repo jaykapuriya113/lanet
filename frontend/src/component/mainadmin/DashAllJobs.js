@@ -36,9 +36,8 @@ const DashAllJobs = () => {
     },
     {
       field: "jobType",
-      headerName: "Category",
+      headerName: "Job Type",
       width: 150,
-      valueGetter: (data) => data.row.jobType.jobTypeName,
     },
     {
       field: "user",

@@ -19,13 +19,19 @@ const uploadRoute = require("./routes/uploadRoutes");
 
 const cookieParser = require("cookie-parser");
 const errorHandler = require("./middleware/error");
+const {
+  startApplicationDeadlineReminderService,
+} = require("./services/applicationDeadlineReminderService");
 //datbase connection
 mongoose
   .connect(process.env.DATABASE, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("DB connected"))
+  .then(() => {
+    console.log("DB connected");
+    startApplicationDeadlineReminderService();
+  })
   .catch((err) => console.log(err));
 
 //middleware
@@ -38,7 +44,23 @@ app.use(
   }),
 );
 app.use(cookieParser());
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  }),
+);
+app.options(
+  "*",
+  cors({
+    origin: true,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+  }),
+);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 //routes moddleware

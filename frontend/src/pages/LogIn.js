@@ -16,7 +16,7 @@ const validationSchema = yup.object({
     .required("Email is required"),
   password: yup
     .string("Enter your password")
-    .min(8, "Password should be of minimum 8 characters length")
+    .min(6, "Password should be of minimum 6 characters length")
     .required("Password is required"),
 });
 
@@ -35,17 +35,18 @@ const LogIn = () => {
   };
   useEffect(() => {
     if (isAuthenticated) {
-      if (userInfo.role.role === 2) {
+      const role = Number(userInfo?.role?.role ?? userInfo?.role ?? 0);
+      if (role === 2) {
         navigate("/mainadmin");
       }
-      if (userInfo.role.role === 1) {
-        navigate("/admin/users");
+      if (role === 1) {
+        navigate("/recruiter/dashboard");
       }
-      if (userInfo.role.role === 0) {
+      if (role === 0) {
         navigate("/");
       }
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, navigate, userInfo]);
 
   const formik = useFormik({
     initialValues: {

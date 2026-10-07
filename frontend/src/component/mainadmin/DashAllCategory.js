@@ -97,7 +97,7 @@ const DashAllCategory = () => {
           <Button variant="contained" color="success" startIcon={<AddIcon />}>
             <Link
               style={{ color: "white", textDecoration: "none" }}
-              to="/admin/category/create"
+              to="/recruiter/category/create"
             >
               Create category
             </Link>

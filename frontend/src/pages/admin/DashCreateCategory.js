@@ -24,7 +24,7 @@ const DashCreateCategory = () => {
     validationSchema: validationSchema,
     onSubmit: (values, actions) => {
       dispatch(createJobTypeAction(values));
-      navigate("/admin/category");
+      navigate("/recruiter/category");
       window.location.reload();
     },
   });

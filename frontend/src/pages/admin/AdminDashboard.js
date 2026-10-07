@@ -1,5 +1,5 @@
 import { useTheme } from "@emotion/react";
-import { Box, Card, CardContent, Typography } from "@mui/material";
+import { Avatar, Box, Card, CardContent, Typography } from "@mui/material";
 import { useSelector } from "react-redux";
 
 import React from "react";
@@ -20,6 +20,13 @@ const AdminDashboard = () => {
       <Box sx={{ maxWidth: "40%", margin: "auto", pt: 10 }}>
         <Card sx={{ minWidth: 275, bgcolor: palette.secondary.midNightBlue }}>
           <CardContent>
+            <Avatar
+              src={user?.profilePhoto || undefined}
+              alt={`${user?.firstName || "Recruiter"} profile photo`}
+              sx={{ width: 96, height: 96, mb: 2 }}
+            >
+              {`${user?.firstName?.[0] || ""}${user?.lastName?.[0] || ""}`}
+            </Avatar>
             <Typography sx={{ fontSize: 16 }} color="black" gutterBottom>
               Personal Info
             </Typography>

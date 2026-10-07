@@ -25,6 +25,10 @@ const jobSchema = new mongoose.Schema(
     location: {
       type: String,
     },
+    applicationDeadline: {
+      type: Date,
+      required: [true, "Application Deadline is required"],
+    },
     AdditionalInformation: {
       type: String,
       required: [true, "AdditionalInformation is require"],
@@ -52,7 +56,7 @@ const jobSchema = new mongoose.Schema(
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
     timestamps: true,
-  }
+  },
 );
 
 jobSchema.virtual("userAppliedForJob", {

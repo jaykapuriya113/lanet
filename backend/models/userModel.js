@@ -36,9 +36,36 @@ const userSchema = new mongoose.Schema(
     },
     resume: {
       type: String,
-      required: [function () {
-        return Number(this.role) === 0;
-      }, "A user must upload resume"],
+      required: [
+        function () {
+          return Number(this.role) === 0;
+        },
+        "A user must upload resume",
+      ],
+    },
+    phoneNumber: {
+      type: String,
+      trim: true,
+    },
+    education: {
+      type: String,
+      trim: true,
+    },
+    skills: {
+      type: String,
+      trim: true,
+    },
+    experience: {
+      type: String,
+      trim: true,
+    },
+    profileInformation: {
+      type: String,
+      trim: true,
+    },
+    contactDetails: {
+      type: String,
+      trim: true,
     },
     profilePhoto: {
       type: String,
@@ -61,10 +88,12 @@ const userSchema = new mongoose.Schema(
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
     timestamps: true,
-  }
+  },
 );
 
 userSchema.pre("save", async function (next) {
+  this.role = Number(this.role ?? 0);
+
   // Only run this function if password was actually modified
   if (!this.isModified("password")) return next();
 

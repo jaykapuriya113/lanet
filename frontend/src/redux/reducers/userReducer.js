@@ -11,6 +11,10 @@ import {
   USER_APPLY_JOB_REQUEST,
   USER_APPLY_JOB_RESET,
   USER_APPLY_JOB_SUCCESS,
+  USER_APPLICATIONS_LOAD_FAIL,
+  USER_APPLICATIONS_LOAD_REQUEST,
+  USER_APPLICATIONS_LOAD_RESET,
+  USER_APPLICATIONS_LOAD_SUCCESS,
   USER_FORGET_PASSWORD_FAIL,
   USER_FORGET_PASSWORD_REQUEST,
   USER_FORGET_PASSWORD_RESET,
@@ -126,6 +130,24 @@ export const userApplyJobReducer = (state = {}, action) => {
       return { loading: false, error: action.payload };
     case USER_APPLY_JOB_RESET:
       return {};
+    default:
+      return state;
+  }
+};
+
+export const userApplicationsReducer = (
+  state = { applications: [] },
+  action,
+) => {
+  switch (action.type) {
+    case USER_APPLICATIONS_LOAD_REQUEST:
+      return { loading: true, applications: [] };
+    case USER_APPLICATIONS_LOAD_SUCCESS:
+      return { loading: false, applications: action.payload };
+    case USER_APPLICATIONS_LOAD_FAIL:
+      return { loading: false, applications: [], error: action.payload };
+    case USER_APPLICATIONS_LOAD_RESET:
+      return { applications: [] };
     default:
       return state;
   }

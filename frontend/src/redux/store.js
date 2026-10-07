@@ -22,6 +22,7 @@ import {
   editUserReducer,
   resetPasswordReducer,
   userApplyJobReducer,
+  userApplicationsReducer,
   userReducerLogout,
   userReducerProfile,
   userReducerSignIn,
@@ -30,6 +31,7 @@ import {
 import { modeReducer } from "./reducers/themeModeReducer";
 import { deleteJobTypeReducer } from "./reducers/jobTypeReducer";
 import { generalReducer } from "./reducers/generalReducer";
+import { savedJobReducer } from "./reducers/savedJobReducer";
 
 //combine reducers
 const reducer = combineReducers({
@@ -40,6 +42,7 @@ const reducer = combineReducers({
   userprofile: userReducerProfile,
   singleJob: loadJobSingleReducer,
   userJobApplication: userApplyJobReducer,
+  userApplications: userApplicationsReducer,
   allUsers: allUserReducer,
   signUp: userReducerSignUp,
   mode: modeReducer,
@@ -56,6 +59,7 @@ const reducer = combineReducers({
   editUser: editUserReducer,
   applyByUser: useApplyLoadJobReducer,
   updateStatus: updateJobStatusReducer,
+  savedJobs: savedJobReducer,
 });
 
 //initial state
@@ -73,7 +77,7 @@ const middleware = [thunk];
 const store = createStore(
   reducer,
   initialState,
-  composeWithDevTools(applyMiddleware(...middleware))
+  composeWithDevTools(applyMiddleware(...middleware)),
 );
 
 export default store;

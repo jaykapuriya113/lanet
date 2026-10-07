@@ -13,6 +13,7 @@ import WorkIcon from "@mui/icons-material/Work";
 import CategoryIcon from "@mui/icons-material/Category";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import Person3Icon from "@mui/icons-material/Person3";
+import FeedbackIcon from "@mui/icons-material/Feedback";
 import Avatar from "@mui/material/Avatar";
 import logoDashboard from "../../images/hr-project.png";
 import { Link } from "react-router-dom";
@@ -29,7 +30,7 @@ const SidebarAdm = () => {
   const navigate = useNavigate();
   useEffect(() => {
     dispatch(userProfileAction());
-  }, []);
+  }, [dispatch]);
 
   const logOut = () => {
     navigate("/");
@@ -90,92 +91,130 @@ const SidebarAdm = () => {
                 },
               }}
             >
-              {userInfo && userInfo.role.role === 1 && (
-                <>
-                  <MenuItem
-                    component={<Link to="/admin/users" />}
-                    icon={<GroupAddIcon />}
-                  >
-                    {" "}
-                    <div style={{ color: "black" }}> Users </div>
-                  </MenuItem>
-                  <MenuItem
-                    component={<Link to="/admin/jobs" />}
-                    icon={<WorkIcon />}
-                  >
-                    <div style={{ color: "black" }}> Jobs </div>
-                  </MenuItem>
-                  <MenuItem
-                    component={<Link to="/admin/category" />}
-                    icon={<CategoryIcon />}
-                  >
-                    <div style={{ color: "black" }}> Category </div>{" "}
-                  </MenuItem>{" "}
-                  <MenuItem
-                    component={<Link to="/admin/info" />}
-                    icon={<Person3Icon />}
-                  >
-                    <div style={{ color: "black" }}> Personal Info </div>
-                  </MenuItem>
-                  <MenuItem
-                    component={<Link to="/admin/chat" />}
-                    icon={<Person3Icon />}
-                  >
-                    <div style={{ color: "black" }}>Chat </div>
-                  </MenuItem>
-                </>
-              )}
-              {userInfo && userInfo.role.role === 0 && (
-                <>
-                  <MenuItem
-                    component={<Link to="/user/dashboard" />}
-                    icon={<DashboardIcon />}
-                  >
-                    <div style={{ color: "black" }}> Dashboard </div>
-                  </MenuItem>
-                  <MenuItem
-                    component={<Link to="/user/jobs" />}
-                    icon={<WorkHistoryIcon />}
-                  >
-                    <div style={{ color: "black" }}> Applied Jobs </div>
-                  </MenuItem>
-                  <MenuItem
-                    component={<Link to="/user/info" />}
-                    icon={<Person3Icon />}
-                  >
-                    <div style={{ color: "black" }}> Personal Info </div>
-                  </MenuItem>
-                  <MenuItem
-                    component={<Link to="/user/chat" />}
-                    icon={<Person3Icon />}
-                  >
-                    <div style={{ color: "black" }}> Chat </div>
-                  </MenuItem>
-                </>
-              )}
-              {userInfo && userInfo.role.role === 2 && (
-                <>
-                  <MenuItem
-                    component={<Link to="/mainadmin" />}
-                    icon={<Person3Icon />}
-                  >
-                    <div style={{ color: "black" }}> All User </div>
-                  </MenuItem>
+              {userInfo &&
+                Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 1 && (
+                  <>
+                    <MenuItem
+                      component={<Link to="/recruiter/dashboard" />}
+                      icon={<DashboardIcon />}
+                    >
+                      <div style={{ color: "black" }}> Dashboard </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/recruiter/jobs" />}
+                      icon={<WorkIcon />}
+                    >
+                      <div style={{ color: "black" }}> Jobs </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/recruiter/users" />}
+                      icon={<GroupAddIcon />}
+                    >
+                      <div style={{ color: "black" }}>
+                        {" "}
+                        Received Applications{" "}
+                      </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/recruiter/suitable-candidates" />}
+                      icon={<WorkHistoryIcon />}
+                    >
+                      <div style={{ color: "black" }}>
+                        {" "}
+                        Suitable Candidates{" "}
+                      </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/recruiter/category" />}
+                      icon={<CategoryIcon />}
+                    >
+                      <div style={{ color: "black" }}> Category </div>{" "}
+                    </MenuItem>{" "}
+                    <MenuItem
+                      component={<Link to="/recruiter/info" />}
+                      icon={<Person3Icon />}
+                    >
+                      <div style={{ color: "black" }}> Personal Info </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/recruiter/platform-feedback" />}
+                      icon={<FeedbackIcon />}
+                    >
+                      <div style={{ color: "black" }}> Platform Feedback </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/recruiter/chat" />}
+                      icon={<Person3Icon />}
+                    >
+                      <div style={{ color: "black" }}>Chat </div>
+                    </MenuItem>
+                  </>
+                )}
+              {userInfo &&
+                Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 0 && (
+                  <>
+                    <MenuItem
+                      component={<Link to="/user/dashboard" />}
+                      icon={<DashboardIcon />}
+                    >
+                      <div style={{ color: "black" }}> Dashboard </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/user/jobs" />}
+                      icon={<WorkHistoryIcon />}
+                    >
+                      <div style={{ color: "black" }}> Track Applications </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/user/saved-jobs" />}
+                      icon={<WorkHistoryIcon />}
+                    >
+                      <div style={{ color: "black" }}> Saved Jobs </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/user/complete-profile" />}
+                      icon={<Person3Icon />}
+                    >
+                      <div style={{ color: "black" }}> Complete Profile </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/user/info" />}
+                      icon={<Person3Icon />}
+                    >
+                      <div style={{ color: "black" }}> Personal Info </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/user/chat" />}
+                      icon={<Person3Icon />}
+                    >
+                      <div style={{ color: "black" }}> Chat </div>
+                    </MenuItem>
+                  </>
+                )}
+              {userInfo &&
+                Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 2 && (
+                  <>
+                    <MenuItem
+                      component={<Link to="/mainadmin" />}
+                      icon={<Person3Icon />}
+                    >
+                      <div style={{ color: "black" }}> All User </div>
+                    </MenuItem>
 
-                  <MenuItem
-                    component={<Link to="/mainadmin/alljobs" />}
-                    icon={<WorkHistoryIcon />}
-                  >
-                    <div style={{ color: "black" }}> All Jobs </div>
-                  </MenuItem>
-                  <MenuItem
-                    component={<Link to="/mainadmin/info" />}
-                    icon={<Person3Icon />}
-                  >
-                    <div style={{ color: "black" }}> Personal Info </div>
-                  </MenuItem>
-                </>
-              )}
+                    <MenuItem
+                      component={<Link to="/mainadmin/alljobs" />}
+                      icon={<WorkHistoryIcon />}
+                    >
+                      <div style={{ color: "black" }}> All Jobs </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/mainadmin/info" />}
+                      icon={<Person3Icon />}
+                    >
+                      <div style={{ color: "black" }}> Personal Info </div>
+                    </MenuItem>
+                  </>
+                )}
             </Menu>
           </Box>
           <Box sx={{ pb: 2 }}>

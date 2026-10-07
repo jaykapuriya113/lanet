@@ -137,7 +137,7 @@
 //                   />
 //                 ))
 //               )}
-              
+
 //               <Stack spacing={2}>
 //                 <Pagination
 //                   page={page}
@@ -176,32 +176,28 @@ import { Link, useParams } from "react-router-dom";
 import CardElement from "../component/CardElement";
 import Footer from "../component/Footer";
 import LoadingBox from "../component/LoadingBox";
-import SelectComponent from "../component/selectComponent";
-import { jobTypeLoadAction } from "../redux/actions/jobTypeAction";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import { savedJobsLoadAction } from "../redux/actions/savedJobAction";
 
 const Home = () => {
   const { jobs, setUniqueLocation, pages, loading } = useSelector(
-    (state) => state.loadJobs
+    (state) => state.loadJobs,
   );
   const { palette } = useTheme();
   const dispatch = useDispatch();
+  const { userInfo } = useSelector((state) => state.signIn);
   const { keyword, location } = useParams();
 
   const [page, setPage] = useState(1);
-  const [cat, setCat] = useState("");
+  useEffect(() => {
+    dispatch(jobLoadAction(page, keyword, "", location));
+  }, [page, keyword, location]);
 
   useEffect(() => {
-    dispatch(jobLoadAction(page, keyword, cat, location));
-  }, [page, keyword, cat, location]);
-
-  useEffect(() => {
-    dispatch(jobTypeLoadAction());
-  }, []);
-
-  const handleChangeCategory = (e) => {
-    setCat(e.target.value);
-  };
+    if (userInfo && Number(userInfo.role?.role ?? userInfo?.role ?? 0) === 0) {
+      dispatch(savedJobsLoadAction(userInfo.role?._id || userInfo?._id));
+    }
+  }, [dispatch, userInfo]);
 
   return (
     <>
@@ -214,21 +210,6 @@ const Home = () => {
             spacing={{ xs: 1, sm: 2, md: 4 }}
           >
             <Box sx={{ flex: 2, p: 2 }}>
-              <Card sx={{ minWidth: 150, mb: 3, mt: 3, p: 2 }}>
-                <Box sx={{ pb: 2 }}>
-                  <Typography
-                    component="h4"
-                    sx={{ color: palette.secondary.main, fontWeight: 600 }}
-                  >
-                    Filter job by category
-                  </Typography>
-                </Box>
-                <SelectComponent
-                  handleChangeCategory={handleChangeCategory}
-                  cat={cat}
-                />
-              </Card>
-
               {/* jobs by location */}
               <Card sx={{ minWidth: 150, mb: 3, mt: 3, p: 2 }}>
                 <Box sx={{ pb: 2 }}>
@@ -285,11 +266,9 @@ const Home = () => {
                     jobTitle={job.title}
                     companyName={job.companyName}
                     description={job.description}
-                    category={
-                      job.jobType ? job.jobType.jobTypeName : "No category"
-                    }
+                    category={job.jobType}
                     location={job.location}
-                    profilePhoto={job.user.profilePhoto} 
+                    profilePhoto={job.user.profilePhoto}
                   />
                 ))
               )}

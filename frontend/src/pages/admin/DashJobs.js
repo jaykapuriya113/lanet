@@ -128,7 +128,7 @@ const DashJobs = () => {
           <Button variant="contained" color="success" startIcon={<AddIcon />}>
             <Link
               style={{ color: "white", textDecoration: "none" }}
-              to="/admin/job/create"
+              to="/recruiter/job/create"
             >
               Create Job
             </Link>

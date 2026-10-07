@@ -42,20 +42,21 @@
 
 // export default UserInfoDashboard;
 import { useTheme } from "@emotion/react";
-import { Box, Card, CardContent, Typography, Avatar, IconButton, Button } from "@mui/material";
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Avatar,
+  Button,
+} from "@mui/material";
 import { useSelector } from "react-redux";
-import EditUser from "./EditUser";
-import React from "react";
 import EditIcon from "@mui/icons-material/Edit";
+import { Link } from "react-router-dom";
 
 const UserInfoDashboard = () => {
   const { user } = useSelector((state) => state.userprofile);
   const { palette } = useTheme();
-  const [render, setRender] = React.useState(false);
-
-  const renderHandler = () => {
-    setRender(!render);
-  };
 
   return (
     <Box sx={{ maxWidth: "500px", margin: "auto", pt: 7 }}>
@@ -107,17 +108,19 @@ const UserInfoDashboard = () => {
             E-mail: {user && user.email}
           </Typography>
 
-          <EditUser
+          <Button
+            component={Link}
+            to="/user/complete-profile"
+            startIcon={<EditIcon />}
             sx={{
               alignSelf: "flex-end",
               marginTop: "20px",
               backgroundColor: palette.primary.main,
               color: "white",
             }}
-            
           >
-            <Button onClick={renderHandler}>EDIT</Button>
-          </EditUser>
+            Complete Profile
+          </Button>
         </CardContent>
       </Card>
     </Box>

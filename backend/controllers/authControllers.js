@@ -28,7 +28,8 @@ exports.signup = async (req, res, next) => {
     return next(new ErrorResponse("E-mail already exist", 400));
   }
   try {
-    const user = await User.create(req.body);
+    const userData = { ...req.body, role: Number(req.body.role ?? 0) };
+    const user = await User.create(userData);
     res.status(201).json({
       success: true,
       user,
@@ -86,15 +87,18 @@ exports.logout = (req, res, next) => {
 
 // user profile
 exports.userProfile = async (req, res, next) => {
-  const user = await User.findById(req.user.id).select("-password");
-  const userHistory = await UserHistory.find({ user: req.user.id });
-  // console.log(userHistory);
-  // Push all user history data into the user's jobsHistory field
-  const gg = await user.jobsHistory.push(...userHistory);
-  res.status(200).json({
-    success: true,
-    user,
-  });
+  try {
+    const user = await User.findById(req.user.id)
+      .select("-password")
+      .populate({
+        path: "jobsHistory",
+        options: { sort: { createdAt: -1 } },
+      });
+
+    res.status(200).json({ success: true, user });
+  } catch (error) {
+    next(error);
+  }
 };
 
 // sends a email with a token for authentication to change password
@@ -140,20 +144,22 @@ exports.resetPassword = async (req, res, next) => {
 
   if (!password.newPassword || !passwordConfirm.confirmPassword) {
     return next(
-      new ErrorResponse("Both password & passwordConfirm fields are neccessary")
+      new ErrorResponse(
+        "Both password & passwordConfirm fields are neccessary",
+      ),
     );
   }
   console.log("I was here");
   if (password.newPassword !== passwordConfirm.confirmPassword) {
     return next(
-      new ErrorResponse("Password and password fields are not the same", 400)
+      new ErrorResponse("Password and password fields are not the same", 400),
     );
   }
   console.log("I was here");
   const token = req.params.token;
   if (token == "null") {
     return next(
-      new ErrorResponse("Token not present, click forgot password again", 403)
+      new ErrorResponse("Token not present, click forgot password again", 403),
     );
   }
 
@@ -163,8 +169,8 @@ exports.resetPassword = async (req, res, next) => {
     return next(
       new ErrorResponse(
         "Reset Token must have expired, please click forgot password again",
-        401
-      )
+        401,
+      ),
     );
   }
 

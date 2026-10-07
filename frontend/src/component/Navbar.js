@@ -16,17 +16,30 @@ import WorkIcon from "@mui/icons-material/Work";
 import { Link, useNavigate } from "react-router-dom";
 import { useTheme } from "@emotion/react";
 import { useDispatch, useSelector } from "react-redux";
+import NotificationCenter from "./NotificationCenter";
 
 const pages = ["Home", "Log In"];
 
 const Navbar = () => {
   const { userInfo } = useSelector((state) => state.signIn);
+  const { user } = useSelector((state) => state.userprofile);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { palette } = useTheme();
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const [anchorElUser, setAnchorElUser] = React.useState(null);
   const [search, setSearch] = React.useState(false);
+  const account = user || userInfo?.role || {};
+  const accountName = [account.firstName, account.lastName]
+    .filter(Boolean)
+    .join(" ");
+  const accountInitials = accountName
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((namePart) => namePart[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -169,14 +182,35 @@ const Navbar = () => {
             </Button>
           </Box>
 
-          <Box sx={{ flexGrow: 0 }}>
+          <Box
+            sx={{
+              flexGrow: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            {userInfo &&
+              [0, 1].includes(
+                Number(userInfo?.role?.role ?? userInfo?.role ?? 0),
+              ) && (
+                <NotificationCenter
+                  key={userInfo?.role?._id || userInfo?._id}
+                  userId={userInfo?.role?._id || userInfo?._id}
+                  isRecruiter={
+                    Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 1
+                  }
+                />
+              )}
             <Tooltip title="Open settings">
               <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                 <Avatar
                   sx={{ color: palette.primary.white }}
-                  alt="Remy Sharp"
-                  src=""
-                />
+                  alt={accountName || "Account profile"}
+                  src={account.profilePhoto || undefined}
+                >
+                  {accountInitials}
+                </Avatar>
               </IconButton>
             </Tooltip>
             <Menu
@@ -203,51 +237,69 @@ const Navbar = () => {
               open={Boolean(anchorElUser)}
               onClose={handleCloseUserMenu}
             >
-              {userInfo && userInfo?.role?.role === 1 && (
-                <MenuItem onClick={handleCloseUserMenu}>
-                  <Typography textAlign="center">
-                    <Link
-                      style={{
-                        textDecoration: "none",
-                        color: palette.secondary.main,
-                      }}
-                      to="/admin/users"
-                    >
-                      Recruiter Dashboard
-                    </Link>
-                  </Typography>
-                </MenuItem>
-              )}
-              {userInfo && userInfo?.role?.role === 0 && (
-                <MenuItem onClick={handleCloseUserMenu}>
-                  <Typography textAlign="center">
-                    <Link
-                      style={{
-                        textDecoration: "none",
-                        color: palette.secondary.main,
-                      }}
-                      to="/user/dashboard"
-                    >
-                      User Dashboard
-                    </Link>
-                  </Typography>
-                </MenuItem>
-              )}
-              {userInfo && userInfo?.role?.role === 2 && (
-                <MenuItem onClick={handleCloseUserMenu}>
-                  <Typography textAlign="center">
-                    <Link
-                      style={{
-                        textDecoration: "none",
-                        color: palette.secondary.main,
-                      }}
-                      to="/mainadmin"
-                    >
-                      Admin Dashboard
-                    </Link>
-                  </Typography>
-                </MenuItem>
-              )}
+              {userInfo &&
+                Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 1 && (
+                  <>
+                    <MenuItem onClick={handleCloseUserMenu}>
+                      <Typography textAlign="center">
+                        <Link
+                          style={{
+                            textDecoration: "none",
+                            color: palette.secondary.main,
+                          }}
+                          to="/recruiter/dashboard"
+                        >
+                          Recruiter Dashboard
+                        </Link>
+                      </Typography>
+                    </MenuItem>
+                    <MenuItem onClick={handleCloseUserMenu}>
+                      <Typography textAlign="center">
+                        <Link
+                          style={{
+                            textDecoration: "none",
+                            color: palette.secondary.main,
+                          }}
+                          to="/recruiter/users"
+                        >
+                          Received Applications
+                        </Link>
+                      </Typography>
+                    </MenuItem>
+                  </>
+                )}
+              {userInfo &&
+                Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 0 && (
+                  <MenuItem onClick={handleCloseUserMenu}>
+                    <Typography textAlign="center">
+                      <Link
+                        style={{
+                          textDecoration: "none",
+                          color: palette.secondary.main,
+                        }}
+                        to="/user/dashboard"
+                      >
+                        User Dashboard
+                      </Link>
+                    </Typography>
+                  </MenuItem>
+                )}
+              {userInfo &&
+                Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 2 && (
+                  <MenuItem onClick={handleCloseUserMenu}>
+                    <Typography textAlign="center">
+                      <Link
+                        style={{
+                          textDecoration: "none",
+                          color: palette.secondary.main,
+                        }}
+                        to="/mainadmin"
+                      >
+                        Admin Dashboard
+                      </Link>
+                    </Typography>
+                  </MenuItem>
+                )}
               {!userInfo ? (
                 <MenuItem onClick={handleCloseUserMenu}>
                   <Typography textAlign="center">

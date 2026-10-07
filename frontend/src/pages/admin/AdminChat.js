@@ -1,9 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { CometChatUI } from "../../cometchat-pro-react-ui-kit/CometChatWorkspace/src/components/CometChatUI";
 import { CometChat } from "@cometchat-pro/chat";
 import { useSelector } from "react-redux";
 
 const AdminChat = () => {
+  const [chatReady, setChatReady] = useState(false);
+  const [chatError, setChatError] = useState("");
   const extractUsername = (email) => {
     const atIndex = email.indexOf("@");
     if (atIndex !== -1) {
@@ -14,35 +16,49 @@ const AdminChat = () => {
   };
   const { userInfo } = useSelector((state) => state.signIn);
   useEffect(() => {
-    if (userInfo) {
-      let authKey = "e63ce563417fcafa1de6187962db3eb3f80c240b";
-      var uid = extractUsername(userInfo.role.email);
-      var name = userInfo.role.firstName;
+    let cancelled = false;
 
-      console.log(uid);
-      console.log(name);
+    const loginToChat = async () => {
+      if (!userInfo) return;
 
-      var user = new CometChat.User(uid);
-      console.log(uid);
-      user.setName(name);
-      CometChat.createUser(user, authKey).then(
-        (user) => {
-          console.log("user created", user);
-        },
-        (error) => {
-          console.log("error", error);
+      try {
+        const authKey = "e63ce563417fcafa1de6187962db3eb3f80c240b";
+        const uid = extractUsername(userInfo.role.email);
+        const user = new CometChat.User(uid);
+        user.setName(
+          `${userInfo.role.firstName} ${userInfo.role.lastName || ""}`.trim(),
+        );
+
+        if (!CometChat.isInitialized()) {
+          throw new Error(
+            "Chat service is still initializing. Refresh and try again.",
+          );
         }
-      );
 
-      CometChat.login(uid, authKey).then(
-        (user) => {
-          console.log("Login Successful:", { user });
-        },
-        (error) => {
-          console.log("Login failed with exception:", { error });
+        try {
+          await CometChat.createUser(user, authKey);
+        } catch (error) {
+          if (error?.code !== "ERR_UID_ALREADY_EXISTS") throw error;
         }
-      );
-    }
+
+        const loggedInUser = await CometChat.getLoggedinUser();
+        if (loggedInUser && loggedInUser.getUid() !== uid) {
+          await CometChat.logout();
+        }
+
+        await CometChat.login(uid, authKey);
+        if (!cancelled) setChatReady(true);
+      } catch (error) {
+        if (!cancelled) {
+          setChatError(error?.message || "Unable to connect to chat.");
+        }
+      }
+    };
+
+    loginToChat();
+    return () => {
+      cancelled = true;
+    };
   }, [userInfo]);
   return (
     <>
@@ -54,7 +70,9 @@ const AdminChat = () => {
           backgroundColor: "#F2F2F2",
         }}
       >
-        <CometChatUI />
+        {chatError && <p>{chatError}</p>}
+        {!chatError && !chatReady && <p>Connecting to chat...</p>}
+        {chatReady && <CometChatUI />}
       </div>
     </>
   );
