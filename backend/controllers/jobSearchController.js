@@ -1,49 +1,90 @@
 const Job = require("../models/jobModel");
-const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-//show job by id.
+/**
+ * Escapes every regex special character in a user-supplied string so it can
+ * be safely embedded inside a MongoDB $regex without altering its meaning.
+ */
+const escapeRegex = (value) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// show jobs with optional keyword + location filters
 exports.showJobs = async (req, res, next) => {
-  const keyword = req.query.keyword
+  // ── keyword filter ──────────────────────────────────────────────────────
+  // Trim and reject the literal string "undefined" that can appear when the
+  // client passes an empty param via query string.
+  const rawKeyword =
+    typeof req.query.keyword === "string" ? req.query.keyword.trim() : "";
+  const hasKeyword =
+    rawKeyword.length > 0 && rawKeyword.toLowerCase() !== "undefined";
+
+  // Always escape special regex characters so user input like "C++" or
+  // "(react)" doesn't produce a malformed MongoDB regex.
+  const keywordFilter = hasKeyword
     ? {
-        title: {
-          $regex: req.query.keyword,
-          $options: "i",
-        },
+        $or: [
+          { title:               { $regex: escapeRegex(rawKeyword), $options: "i" } },
+          { companyName:         { $regex: escapeRegex(rawKeyword), $options: "i" } },
+          { AdditionalInformation: { $regex: escapeRegex(rawKeyword), $options: "i" } },
+        ],
       }
     : {};
 
-  //jobs by location
-  const jobByLocation = await Job.find(
-    { isDeleted: false },
-    { location: 1 },
-  );
+  const now = new Date();
+  const baseJobQuery = {
+    isDeleted: false,
+    available: true,
+    applicationDeadline: { $gte: now },
+    ...keywordFilter,
+  };
+
+  // ── unique locations from the active results for the current keyword ─────
+  const jobByLocation = await Job.find(baseJobQuery, { location: 1 }).lean();
   const uniqueLocations = new Map();
   jobByLocation.forEach(({ location }) => {
-    const normalizedLocation = location?.trim();
+    const normalizedLocation = location?.trim().replace(/\s+/g, " ");
     if (normalizedLocation) {
-      const locationKey = normalizedLocation.toLowerCase();
+      const locationKey = normalizedLocation.toLocaleLowerCase();
       if (!uniqueLocations.has(locationKey)) {
         uniqueLocations.set(locationKey, normalizedLocation);
       }
     }
   });
   const setUniqueLocation = [...uniqueLocations.values()];
+
+  // ── location filter ──────────────────────────────────────────────────────
+  // Use a partial (contains) match with case-insensitive flag so that:
+  //   "Sur"  matches "Surat"
+  //   "surat" matches "Surat"
+  //   "SURAT" matches "Surat"
+  // Special regex characters in the user's input are escaped first.
   const selectedLocation =
     typeof req.query.location === "string" ? req.query.location.trim() : "";
   const hasSelectedLocation =
-    selectedLocation && selectedLocation.toLowerCase() !== "undefined";
+    selectedLocation.length > 0 &&
+    selectedLocation.toLowerCase() !== "undefined";
+
+  const exactLocationPattern = selectedLocation
+    .split(/\s+/)
+    .map(escapeRegex)
+    .join("\\s+");
   const locationFilter = hasSelectedLocation
     ? {
         location: {
-          $regex: `^\\s*${escapeRegex(selectedLocation)}\\s*$`,
+          $regex: `^\\s*${exactLocationPattern}\\s*$`,
           $options: "i",
         },
       }
     : {};
-  const jobQuery = { ...keyword, ...locationFilter };
 
-  //pagination
-  const pageSize = 5;
+  // ── combine filters; always exclude deleted jobs and only show currently open jobs
+  const jobQuery = {
+    ...baseJobQuery,
+    ...locationFilter,
+  };
+
+  // keyword-based searches (including click-through company searches) should return
+  // all matching openings for that company, not just the first page slice.
+  const pageSize = hasKeyword ? 1000 : 5;
   const page = Number(req.query.pageNumber) || 1;
   const count = await Job.find(jobQuery).countDocuments();
   try {

@@ -143,10 +143,18 @@ const DashUsers = () => {
   const updateApplicationStatus = async (applicationId, applicationStatus) => {
     setProcessingId(applicationId);
     try {
-      await axios.patch(`/api/recruiter/applications/${applicationId}/status`, {
-        applicationStatus,
-      });
+      const { data } = await axios.patch(
+        `/api/recruiter/applications/${applicationId}/status`,
+        { applicationStatus },
+      );
       toast.success("Application status updated.");
+      if (data?.emailNotification?.status === "failed") {
+        toast.error(
+          "Status was saved, but the candidate notification email could not be sent.",
+        );
+      } else if (data?.emailNotification?.status === "accepted") {
+        toast.info("The SMTP provider accepted the candidate notification.");
+      }
       fetchApplications();
     } catch (requestError) {
       toast.error(
@@ -200,7 +208,7 @@ const DashUsers = () => {
         >
           {params.row.matchScore === null ||
           typeof params.row.matchScore === "undefined"
-            ? "Not enough data"
+            ? params.row.matchExplanation || "A match score is unavailable."
             : `${params.row.matchScore}%`}
         </Typography>
       ),

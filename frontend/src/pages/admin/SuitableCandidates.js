@@ -15,8 +15,10 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { Link } from "react-router-dom";
 
 const getResumeFileName = (resumeUrl) => {
   if (!resumeUrl) return "resume.pdf";
@@ -113,10 +115,18 @@ const SuitableCandidates = () => {
 
   const shortlistCandidate = async (applicationId) => {
     try {
-      await axios.patch(`/api/recruiter/applications/${applicationId}/status`, {
-        applicationStatus: "shortlisted",
-      });
+      const { data } = await axios.patch(
+        `/api/recruiter/applications/${applicationId}/status`,
+        { applicationStatus: "shortlisted" },
+      );
       toast.success("Candidate shortlisted.");
+      if (data?.emailNotification?.status === "failed") {
+        toast.error(
+          "Status was saved, but the candidate notification email could not be sent.",
+        );
+      } else if (data?.emailNotification?.status === "accepted") {
+        toast.info("The SMTP provider accepted the candidate notification.");
+      }
       if (selectedJobId) {
         loadSuitableCandidates(selectedJobId);
       }
@@ -162,6 +172,21 @@ const SuitableCandidates = () => {
               ))}
             </Select>
           </FormControl>
+
+          {/* View Job button — navigates to /job/:id for the selected job */}
+          {selectedJobId && (
+            <Box sx={{ mt: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<OpenInNewIcon />}
+                component={Link}
+                to={`/job/${selectedJobId}`}
+                sx={{ textTransform: "none", fontWeight: 600 }}
+              >
+                View Job
+              </Button>
+            </Box>
+          )}
         </Paper>
       )}
 
@@ -199,7 +224,7 @@ const SuitableCandidates = () => {
                       <Typography variant="h5" sx={{ fontWeight: 700 }}>
                         {candidate.score === null ||
                         typeof candidate.score === "undefined"
-                          ? "Not enough data"
+                          ? candidate.explanation || "A match score is unavailable."
                           : `${candidate.score}%`}
                       </Typography>
                       <Chip

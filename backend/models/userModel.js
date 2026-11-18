@@ -71,6 +71,24 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "A user must have profile photo"],
     },
+    // companyName — optional, stored on recruiter accounts
+    companyName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    // companyWebsite — optional URL for the recruiter's company
+    companyWebsite: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    // companyAddress — optional physical address / location for the company
+    companyAddress: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     jobsHistory: [{ type: ObjectId, ref: "UserHistory" }],
     role: {
       type: Number,
@@ -79,6 +97,39 @@ const userSchema = new mongoose.Schema(
     isDeleted: {
       type: Boolean,
       default: false,
+    },
+    // Soft-disable without permanent deletion. false = deactivated (cannot log in).
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    // Recruiter-only: pending | verified | rejected
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: "pending",
+    },
+    // Email verification (registration code). Accounts created before this
+    // feature have no value here and are treated as verified.
+    isEmailVerified: {
+      type: Boolean,
+    },
+    emailVerificationCode: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
+    },
+    emailVerificationAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    emailVerificationSentAt: {
+      type: Date,
+      select: false,
     },
     passwordChangedAt: Date,
     passwordResetToken: String,
@@ -119,7 +170,7 @@ userSchema.methods.comparePassword = async function (enteredPassword) {
 // return JWT token
 userSchema.methods.getJwtToken = function () {
   return jwt.sign({ id: this.id }, process.env.JWT_SECRET, {
-    expiresIn: 3600,
+    expiresIn: process.env.JWT_EXPIRE_IN || "7d",
   });
 };
 

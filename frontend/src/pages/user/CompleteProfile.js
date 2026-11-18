@@ -152,7 +152,6 @@ const CompleteProfile = () => {
     if (!/^\+?\d{8,15}$/.test(phoneNumber) || !/[1-9]/.test(phoneNumber)) {
       return "Enter a valid contact number with 8 to 15 digits.";
     }
-
     if (!form.education.trim()) return "Education is required.";
     if (!form.skills.trim()) return "Skills are required.";
     if (!form.experience.trim()) return "Experience is required.";

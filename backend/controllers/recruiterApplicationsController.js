@@ -4,7 +4,35 @@ const Job = require("../models/jobModel");
 const ErrorResponse = require("../utils/errorResponse");
 const User = require("../models/userModel");
 const UserHistory = require("../models/jobHistory");
-const { calculateJobMatch } = require("../utils/jobMatch");
+const { calculateCandidateJobMatch } = require("../utils/jobMatch");
+
+const calculateAndSaveApplicationMatch = async (application, applicant, job) => {
+  if (Number.isFinite(application.matchScore)) {
+    return {
+      score: application.matchScore,
+      matchedSkills: application.matchedSkills || [],
+      missingSkills: application.missingSkills || [],
+      explanation: application.matchExplanation || "",
+    };
+  }
+
+  const match = await calculateCandidateJobMatch(
+    { ...applicant, resume: application.resume || applicant.resume },
+    job,
+  );
+  await UserHistory.updateOne(
+    { _id: application._id },
+    {
+      $set: {
+        matchScore: match.score,
+        matchedSkills: match.matchedSkills,
+        missingSkills: match.missingSkills,
+        matchExplanation: match.explanation,
+      },
+    },
+  );
+  return match;
+};
 
 //apply user user find by id
 exports.showAdminUserApplyJob = async (req, res, next) => {
@@ -163,35 +191,41 @@ exports.getRecruiterApplications = async (req, res, next) => {
 
     const responsePayload = {
       success: true,
-      applications: hydratedApplications.map((application) => {
-        const applicant = application.user || {};
-        const job = application.jobId || {};
-        const generatedApplicantName =
-          applicant.firstName || applicant.lastName
-            ? `${applicant.firstName || ""} ${applicant.lastName || ""}`.trim()
-            : application.applicantName || "Unknown applicant";
-        const match = calculateJobMatch(applicant, job);
+      applications: await Promise.all(
+        hydratedApplications.map(async (application) => {
+          const applicant = application.user || {};
+          const job = application.jobId || {};
+          const generatedApplicantName =
+            applicant.firstName || applicant.lastName
+              ? `${applicant.firstName || ""} ${applicant.lastName || ""}`.trim()
+              : application.applicantName || "Unknown applicant";
+          const match = await calculateAndSaveApplicationMatch(
+            application,
+            applicant,
+            job,
+          );
 
-        return {
-          ...application,
-          applicantName: generatedApplicantName,
-          applicantFirstName: applicant.firstName || "",
-          applicantLastName: applicant.lastName || "",
-          applicantEmail:
-            applicant.email || application.email || "Not available",
-          email: applicant.email || application.email || "Not available",
-          jobTitle: job.title || application.title || "Not available",
-          jobCompany: job.companyName || "Not available",
-          jobLocation: job.location || application.location || "Not available",
-          resumeName: applicant.resume
-            ? getResumeFileName(applicant.resume)
-            : "No resume uploaded",
-          matchScore: match.score,
-          matchedSkills: match.matchedSkills,
-          missingSkills: match.missingSkills,
-          matchExplanation: match.explanation,
-        };
-      }),
+          return {
+            ...application,
+            applicantName: generatedApplicantName,
+            applicantFirstName: applicant.firstName || "",
+            applicantLastName: applicant.lastName || "",
+            applicantEmail:
+              applicant.email || application.email || "Not available",
+            email: applicant.email || application.email || "Not available",
+            jobTitle: job.title || application.title || "Not available",
+            jobCompany: job.companyName || "Not available",
+            jobLocation: job.location || application.location || "Not available",
+            resumeName: applicant.resume
+              ? getResumeFileName(applicant.resume)
+              : "No resume uploaded",
+            matchScore: match.score,
+            matchedSkills: match.matchedSkills,
+            missingSkills: match.missingSkills,
+            matchExplanation: match.explanation,
+          };
+        }),
+      ),
     };
 
     return res.status(200).json(responsePayload);
@@ -231,7 +265,8 @@ exports.getRecruiterApplicationById = async (req, res, next) => {
       );
     }
 
-    const match = calculateJobMatch(
+    const match = await calculateAndSaveApplicationMatch(
+      hydratedApplication,
       hydratedApplication.user || {},
       hydratedApplication.jobId || {},
     );
@@ -299,39 +334,45 @@ exports.getSuitableCandidatesForJob = async (req, res, next) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const candidates = applications
-      .map((application) => {
-        const applicant = application.user || {};
-        const mainMatch = calculateJobMatch(applicant, job);
-        const fullName =
-          `${applicant.firstName || ""} ${applicant.lastName || ""}`.trim();
+    const candidates = (
+      await Promise.all(
+        applications.map(async (application) => {
+          const applicant = application.user || {};
+          const mainMatch = await calculateAndSaveApplicationMatch(
+            application,
+            applicant,
+            job,
+          );
+          const fullName =
+            `${applicant.firstName || ""} ${applicant.lastName || ""}`.trim();
 
-        return {
-          applicationId: application._id,
-          userId: applicant._id || application.user,
-          name: fullName || "Unknown applicant",
-          email: applicant.email || "Not available",
-          score: mainMatch.score,
-          matchedSkills: mainMatch.matchedSkills,
-          missingSkills: mainMatch.missingSkills,
-          explanation: mainMatch.explanation,
-          applicationStatus: application.applicationStatus || "pending",
-          resume: applicant.resume || "",
-          resumeName: applicant.resume
-            ? getResumeFileName(applicant.resume)
-            : "No resume uploaded",
-          profileSummary:
-            applicant.profileInformation ||
-            applicant.education ||
-            applicant.experience ||
-            "No profile details provided",
-        };
-      })
-      .sort((first, second) => {
-        const firstScore = Number.isFinite(first.score) ? first.score : -1;
-        const secondScore = Number.isFinite(second.score) ? second.score : -1;
-        return secondScore - firstScore;
-      });
+          return {
+            applicationId: application._id,
+            userId: applicant._id || application.user,
+            name: fullName || "Unknown applicant",
+            email: applicant.email || "Not available",
+            score: mainMatch.score,
+            matchedSkills: mainMatch.matchedSkills,
+            missingSkills: mainMatch.missingSkills,
+            explanation: mainMatch.explanation,
+            applicationStatus: application.applicationStatus || "pending",
+            resume: applicant.resume || "",
+            resumeName: applicant.resume
+              ? getResumeFileName(applicant.resume)
+              : "No resume uploaded",
+            profileSummary:
+              applicant.profileInformation ||
+              applicant.education ||
+              applicant.experience ||
+              "No profile details provided",
+          };
+        }),
+      )
+    ).sort((first, second) => {
+      const firstScore = Number.isFinite(first.score) ? first.score : -1;
+      const secondScore = Number.isFinite(second.score) ? second.score : -1;
+      return secondScore - firstScore;
+    });
 
     return res.status(200).json({
       success: true,

@@ -1,21 +1,45 @@
+/* ── Global overflow guard ───────────────────────────────────────────────────
+   Prevents any element from causing a horizontal scrollbar on the whole page.
+   Does not affect vertical scrolling. */
+html,
+body,
+#root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* ── Auth / Reset-password form card ──────────────────────────────────────────
+   Default: 420 px wide, centred, capped at 95 % of the viewport so it never
+   touches the edges on narrow screens and never becomes unreadably wide on
+   large screens. */
 .form_style {
   position: relative;
-  outline: 0px;
+  outline: 0;
   margin: auto;
   display: flex;
   -webkit-box-pack: center;
   justify-content: center;
   padding: 24px;
   background-color: rgb(255, 255, 255);
-  border-width: 1px 0px;
+  border-width: 1px 0;
   border-style: solid;
   border-color: rgb(231, 235, 240);
   border-image: initial;
-  width: 35%;
+  /* fluid width: grows from 320 px up to 420 px, never wider than 95 vw */
+  width: clamp(320px, 42vw, 420px);
+  box-sizing: border-box;
 }
 
 .border-style {
   border-radius: 10px;
   border-left-width: 1px;
   border-right-width: 1px;
+}
+
+/* Narrow tablets / large phones — tighten padding, keep form centred */
+@media (max-width: 600px) {
+  .form_style {
+    width: 92vw;
+    padding: 20px 16px;
+  }
 }

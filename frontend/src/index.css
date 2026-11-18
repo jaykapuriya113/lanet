@@ -1,3 +1,11 @@
+/* Universal box-sizing: padding and border are included in declared widths.
+   This prevents child elements from ever growing wider than their parent. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

@@ -1,4 +1,9 @@
-import { Avatar, Box, Button, TextField } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  TextField,
+} from "@mui/material";
 import React, { useEffect } from "react";
 import Footer from "../component/Footer";
 import LockClockOutlined from "@mui/icons-material/LockClockOutlined";
@@ -9,14 +14,41 @@ import { useDispatch, useSelector } from "react-redux";
 import { userSignInAction } from "../redux/actions/userAction";
 import { Link, useNavigate } from "react-router-dom";
 
-const validationSchema = yup.object({
-  email: yup
-    .string("Enter your email")
-    .email("Enter a valid email")
-    .required("Email is required"),
+const emailValidation = yup
+  .string("Enter your email")
+  .email("Enter a valid email")
+  .test(
+    "email-username-start",
+    "Email username must start with a letter",
+    (value) => !value || /^[A-Za-z]/.test(value),
+  )
+  .required("Email is required");
+
+export const validationSchema = yup.object({
+  email: emailValidation,
   password: yup
     .string("Enter your password")
-    .min(6, "Password should be of minimum 6 characters length")
+    .test("not-blank", "Password is required", (value) =>
+      Boolean(value?.trim()),
+    )
+    .min(8, "Password should be at least 8 characters")
+    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .matches(/[a-z]/, "Password must contain at least one lowercase letter")
+    .matches(/[0-9]/, "Password must contain at least one number")
+    .matches(
+      /[^A-Za-z0-9\s]/,
+      "Password must contain at least one special character",
+    )
+    .required("Password is required"),
+});
+
+export const adminLoginValidationSchema = yup.object({
+  email: emailValidation,
+  password: yup
+    .string("Enter your password")
+    .test("not-blank", "Password is required", (value) =>
+      Boolean(value?.trim()),
+    )
     .required("Password is required"),
 });
 
@@ -53,7 +85,7 @@ const LogIn = () => {
       email: "",
       password: "",
     },
-    validationSchema: validationSchema,
+    validationSchema: adminLoginValidationSchema,
     onSubmit: (values, actions) => {
       dispatch(userSignInAction(values));
       actions.resetForm();
@@ -151,7 +183,7 @@ const LogIn = () => {
                 <p>
                   Don't have an account?{" "}
                   <Link
-                    to={"/register"}
+                    to="/register"
                     style={{ color: "#2196f3", textDecoration: "none" }}
                   >
                     Register

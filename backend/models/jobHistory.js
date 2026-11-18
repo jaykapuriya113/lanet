@@ -63,11 +63,17 @@ const jobsHistorySchema = new mongoose.Schema(
     feedback: {
       type: new mongoose.Schema(
         {
-          rating: { type: Number, min: 1, max: 5, required: true },
-          comment: { type: String, trim: true, required: true, maxlength: 2000 },
+          rating: { type: Number, min: 1, max: 5 },
+          comment: { type: String, trim: true, maxlength: 16000 },
+          overallExperience: { type: String, trim: true, maxlength: 5000 },
+          likedMost: { type: String, trim: true, maxlength: 5000 },
+          suggestedImprovements: { type: String, trim: true, maxlength: 5000 },
           user: { type: ObjectId, ref: "User", required: true },
           job: { type: ObjectId, ref: "Job", required: true },
           submittedAt: { type: Date, required: true },
+          adminStatus: { type: String, enum: ["reviewed", "resolved"] },
+          adminNote: { type: String, trim: true, maxlength: 500, default: "" },
+          reviewedAt: { type: Date },
         },
         { _id: false },
       ),
@@ -85,6 +91,25 @@ const jobsHistorySchema = new mongoose.Schema(
         "rejected",
       ],
       default: "pending",
+    },
+    matchScore: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: null,
+    },
+    matchedSkills: {
+      type: [String],
+      default: [],
+    },
+    missingSkills: {
+      type: [String],
+      default: [],
+    },
+    matchExplanation: {
+      type: String,
+      trim: true,
+      default: "",
     },
     statusHistory: [
       {

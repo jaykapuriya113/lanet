@@ -8,11 +8,18 @@ const Layout =
   ({ ...props }) => {
     return (
       <>
-        <div style={{ display: "flex", minHeight: "100vh" }}>
+        <div
+          style={{
+            display: "flex",
+            minHeight: "100vh",
+            width: "100%",
+            overflowX: "hidden",
+          }}
+        >
           <SidebarAdm />
-          <Box sx={{ width: "100%", bgcolor: " LightGray" }}>
+          <Box sx={{ flex: "1 1 0%", minWidth: 0, bgcolor: "LightGray" }}>
             <HeaderTop />
-            <Box sx={{ p: 3 }}>
+            <Box sx={{ p: { xs: 1.5, sm: 3 }, minWidth: 0, overflowX: "hidden" }}>
               <Component {...props} />
             </Box>
           </Box>

@@ -153,6 +153,13 @@ const ApplicantReview = () => {
         applicationStatus: data?.applicationStatus || selectedStatus,
       }));
       toast.success("Application status updated successfully.");
+      if (data?.emailNotification?.status === "failed") {
+        toast.error(
+          "Status was saved, but the candidate notification email could not be sent.",
+        );
+      } else if (data?.emailNotification?.status === "accepted") {
+        toast.info("The SMTP provider accepted the candidate notification.");
+      }
     } catch (requestError) {
       toast.error(
         requestError.response?.data?.error ||
@@ -294,7 +301,7 @@ const ApplicantReview = () => {
   const matchedSkills = application.matchedSkills || [];
   const missingSkills = application.missingSkills || [];
   const matchExplanation =
-    application.matchExplanation || "No AI match explanation available.";
+    application.matchExplanation || "A match score is unavailable.";
 
   return (
     <Box sx={{ p: 3 }}>
@@ -352,7 +359,7 @@ const ApplicantReview = () => {
                 sx={{ fontWeight: 700, color: "primary.main" }}
               >
                 {matchScore === null || typeof matchScore === "undefined"
-                  ? "Not enough data"
+                  ? matchExplanation
                   : `${matchScore}%`}
               </Typography>
 

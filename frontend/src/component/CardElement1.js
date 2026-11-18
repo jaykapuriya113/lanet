@@ -11,6 +11,7 @@ import {
   IconButton,
   Alert,
   Rating,
+  Stack,
   TextField,
   Step,
   StepLabel,
@@ -70,6 +71,7 @@ const CardElement1 = ({
   jobId,
   interview,
   feedback,
+  expandFeedback = false,
 }) => {
   const { palette } = useTheme();
   const getInterviewResponse = (value) =>
@@ -82,8 +84,13 @@ const CardElement1 = ({
   const [interviewResponseError, setInterviewResponseError] =
     React.useState("");
   const [savedFeedback, setSavedFeedback] = React.useState(feedback || null);
-  const [feedbackRating, setFeedbackRating] = React.useState(0);
-  const [feedbackComment, setFeedbackComment] = React.useState("");
+  const [feedbackOpen, setFeedbackOpen] = React.useState(expandFeedback);
+  const [feedbackAnswers, setFeedbackAnswers] = React.useState({
+    overallExperience: "",
+    likedMost: "",
+    suggestedImprovements: "",
+  });
+  const [feedbackSubmitted, setFeedbackSubmitted] = React.useState(false);
   const [savingFeedback, setSavingFeedback] = React.useState(false);
   const [feedbackError, setFeedbackError] = React.useState("");
 
@@ -95,15 +102,21 @@ const CardElement1 = ({
     setSavedFeedback(feedback || null);
   }, [feedback]);
 
+  React.useEffect(() => {
+    setFeedbackOpen(expandFeedback);
+  }, [expandFeedback]);
+
   const submitFeedback = async () => {
     setSavingFeedback(true);
     setFeedbackError("");
     try {
       const { data } = await axios.post(
         `/api/user/applications/${encodeURIComponent(id)}/feedback`,
-        { rating: feedbackRating, comment: feedbackComment },
+        feedbackAnswers,
       );
       setSavedFeedback(data.feedback);
+      setFeedbackOpen(false);
+      setFeedbackSubmitted(true);
     } catch (error) {
       setFeedbackError(
         error.response?.data?.error ||
@@ -304,75 +317,122 @@ const CardElement1 = ({
             </Button>
           </Box>
         )}
-        {(["selected", "accepted", "rejected"].includes(normalizedStatus) ||
-          interview?.status === "completed") && (
-          <Box
-            sx={{
-              mb: 2,
-              p: 2,
-              border: 1,
-              borderColor: "divider",
-              borderRadius: 1,
-            }}
-          >
-            <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
-              Feedback &amp; Rating
-            </Typography>
-            {savedFeedback ? (
-              <>
-                <Rating value={savedFeedback.rating} readOnly />
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  {savedFeedback.comment}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Submitted{" "}
-                  {new Date(savedFeedback.submittedAt).toLocaleDateString()}
-                </Typography>
-              </>
-            ) : (
-              <>
-                <Typography variant="body2" sx={{ mb: 1 }}>
-                  Share your feedback about the hiring process.
-                </Typography>
-                <Rating
-                  value={feedbackRating}
-                  onChange={(_, value) => setFeedbackRating(value || 0)}
-                  aria-label="Feedback rating"
-                />
+        <Box
+          sx={{
+            mb: 2,
+            p: 2,
+            border: 1,
+            borderColor: "divider",
+            borderRadius: 1,
+          }}
+        >
+          <Typography variant="h6" sx={{ mb: 1, fontWeight: 700 }}>
+            Feedback
+          </Typography>
+          {savedFeedback ? (
+            <>
+              {feedbackSubmitted && (
+                <Alert severity="success" sx={{ mb: 1.5 }}>
+                  Feedback submitted successfully.
+                </Alert>
+              )}
+              {[
+                ["What was your overall experience with the company?", savedFeedback.overallExperience],
+                ["What did you like most about the company and recruitment process?", savedFeedback.likedMost],
+                ["What improvements would you suggest for the company or recruitment process?", savedFeedback.suggestedImprovements],
+              ].some(([, answer]) => answer) ? (
+                <Stack spacing={2}>
+                  {[
+                    ["What was your overall experience with the company?", savedFeedback.overallExperience],
+                    ["What did you like most about the company and recruitment process?", savedFeedback.likedMost],
+                    ["What improvements would you suggest for the company or recruitment process?", savedFeedback.suggestedImprovements],
+                  ].map(([question, answer]) => (
+                    <Box key={question}>
+                      <Typography variant="subtitle2" fontWeight={700}>
+                        {question}
+                      </Typography>
+                      <Typography variant="body2" sx={{ mt: 0.5, whiteSpace: "pre-wrap" }}>
+                        {answer || "No answer provided."}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              ) : (
+                <>
+                  {savedFeedback.rating && <Rating value={savedFeedback.rating} readOnly />}
+                  <Typography variant="body2" sx={{ mt: 1, whiteSpace: "pre-wrap" }}>
+                    {savedFeedback.comment}
+                  </Typography>
+                </>
+              )}
+              <Typography variant="caption" color="text.secondary">
+                Submitted{" "}
+                {new Date(savedFeedback.submittedAt).toLocaleDateString()}
+              </Typography>
+            </>
+          ) : !feedbackOpen ? (
+            <Button variant="outlined" onClick={() => setFeedbackOpen(true)}>
+              Give Feedback
+            </Button>
+          ) : (
+            <>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Share your experience with this company and its recruitment process.
+              </Typography>
+              {[
+                {
+                  name: "overallExperience",
+                  question: "What was your overall experience with the company?",
+                },
+                {
+                  name: "likedMost",
+                  question: "What did you like most about the company and recruitment process?",
+                },
+                {
+                  name: "suggestedImprovements",
+                  question: "What improvements would you suggest for the company or recruitment process?",
+                },
+              ].map(({ name, question }) => (
                 <TextField
+                  key={name}
                   fullWidth
                   multiline
                   minRows={3}
-                  label="Feedback"
-                  value={feedbackComment}
-                  onChange={(event) => setFeedbackComment(event.target.value)}
-                  inputProps={{ maxLength: 2000 }}
+                  label={question}
+                  value={feedbackAnswers[name]}
+                  onChange={(event) =>
+                    setFeedbackAnswers((current) => ({
+                      ...current,
+                      [name]: event.target.value,
+                    }))
+                  }
+                  inputProps={{ maxLength: 5000 }}
+                  required
                   sx={{ my: 1 }}
                 />
-                {feedbackError && (
-                  <Alert severity="error" sx={{ mb: 1 }}>
-                    {feedbackError}
-                  </Alert>
+              ))}
+              {feedbackError && (
+                <Alert severity="error" sx={{ mb: 1 }}>
+                  {feedbackError}
+                </Alert>
+              )}
+              <Button
+                variant="contained"
+                disabled={
+                  savingFeedback ||
+                  Object.values(feedbackAnswers).some((answer) => !answer.trim())
+                }
+                onClick={submitFeedback}
+              >
+                {savingFeedback ? (
+                  <CircularProgress size={20} />
+                ) : (
+                  "Submit Feedback"
                 )}
-                <Button
-                  variant="contained"
-                  disabled={
-                    savingFeedback ||
-                    feedbackRating < 1 ||
-                    !feedbackComment.trim()
-                  }
-                  onClick={submitFeedback}
-                >
-                  {savingFeedback ? (
-                    <CircularProgress size={20} />
-                  ) : (
-                    "Submit Feedback"
-                  )}
-                </Button>
-              </>
-            )}
-          </Box>
-        )}
+              </Button>
+            </>
+          )}
+        </Box>
         {category && (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             {category}

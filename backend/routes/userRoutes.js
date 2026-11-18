@@ -23,6 +23,16 @@ const {
   getRecruiterPlatformFeedback,
   submitRecruiterPlatformFeedback,
 } = require("../controllers/platformFeedbackController");
+const {
+  getUserPlatformFeedback,
+  submitUserPlatformFeedback,
+} = require("../controllers/userPlatformFeedbackController");
+const {
+  getResumeRecommendations,
+  getPreparationPlan,
+} = require("../controllers/resumeAnalyzerController");
+const { submitReport } = require("../controllers/reportController");
+const { provisionChatUser } = require("../controllers/chatController");
 const { isAuthenticated, isAdmin, isMainAdmin } = require("../middleware/auth");
 const router = express.Router();
 
@@ -33,7 +43,24 @@ router.get("/allusers", isAuthenticated, isMainAdmin, allUser);
 //  /api/showallusers
 router.get("/showallusers", isAuthenticated, isMainAdmin, ShowAllUser);
 // specific user routes must be registered before /user/:id to avoid shadowing
+// AI Resume Analyzer - user only
+router.get(
+  "/user/resume-recommendations",
+  isAuthenticated,
+  getResumeRecommendations
+);
+router.post("/user/prepare", isAuthenticated, getPreparationPlan);
 router.get("/user/applications", isAuthenticated, getUserApplications);
+router.get(
+  "/user/platform-feedback",
+  isAuthenticated,
+  getUserPlatformFeedback,
+);
+router.post(
+  "/user/platform-feedback",
+  isAuthenticated,
+  submitUserPlatformFeedback,
+);
 router.post(
   "/user/applications/:applicationId/feedback",
   isAuthenticated,
@@ -73,6 +100,10 @@ router.post(
 router.get("/user/saved-jobs", isAuthenticated, getSavedJobs);
 router.post("/user/saved-jobs/:jobId", isAuthenticated, saveJob);
 router.delete("/user/saved-jobs/:jobId", isAuthenticated, removeSavedJob);
+// Report suspicious / inappropriate job
+router.post("/user/report", isAuthenticated, submitReport);
+// CometChat server-side provisioning — returns uid + authToken, never exposes REST key
+router.post("/chat/provision", isAuthenticated, provisionChatUser);
 router.post("/user/jobhistory/", isAuthenticated, createUserJobsHistory);
 
 //  /api/user/id

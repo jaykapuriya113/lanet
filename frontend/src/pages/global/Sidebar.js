@@ -14,6 +14,10 @@ import CategoryIcon from "@mui/icons-material/Category";
 import WorkHistoryIcon from "@mui/icons-material/WorkHistory";
 import Person3Icon from "@mui/icons-material/Person3";
 import FeedbackIcon from "@mui/icons-material/Feedback";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import FlagIcon from "@mui/icons-material/Flag";
+import RateReviewIcon from "@mui/icons-material/RateReview";
 import Avatar from "@mui/material/Avatar";
 import logoDashboard from "../../images/hr-project.png";
 import { Link } from "react-router-dom";
@@ -38,7 +42,11 @@ const SidebarAdm = () => {
 
   return (
     <>
-      <Sidebar backgroundColor="white" style={{ borderRightStyle: "none" }}>
+      <Sidebar
+        backgroundColor="white"
+        breakPoint="md"
+        style={{ borderRightStyle: "none" }}
+      >
         <Box
           sx={{
             display: "flex",
@@ -107,6 +115,12 @@ const SidebarAdm = () => {
                       <div style={{ color: "black" }}> Jobs </div>
                     </MenuItem>
                     <MenuItem
+                      component={<Link to="/recruiter/category" />}
+                      icon={<CategoryIcon />}
+                    >
+                      <div style={{ color: "black" }}> Category </div>{" "}
+                    </MenuItem>{" "}
+                    <MenuItem
                       component={<Link to="/recruiter/users" />}
                       icon={<GroupAddIcon />}
                     >
@@ -125,16 +139,10 @@ const SidebarAdm = () => {
                       </div>
                     </MenuItem>
                     <MenuItem
-                      component={<Link to="/recruiter/category" />}
-                      icon={<CategoryIcon />}
-                    >
-                      <div style={{ color: "black" }}> Category </div>{" "}
-                    </MenuItem>{" "}
-                    <MenuItem
-                      component={<Link to="/recruiter/info" />}
+                      component={<Link to="/recruiter/chat" />}
                       icon={<Person3Icon />}
                     >
-                      <div style={{ color: "black" }}> Personal Info </div>
+                      <div style={{ color: "black" }}>Chat </div>
                     </MenuItem>
                     <MenuItem
                       component={<Link to="/recruiter/platform-feedback" />}
@@ -143,10 +151,10 @@ const SidebarAdm = () => {
                       <div style={{ color: "black" }}> Platform Feedback </div>
                     </MenuItem>
                     <MenuItem
-                      component={<Link to="/recruiter/chat" />}
+                      component={<Link to="/recruiter/info" />}
                       icon={<Person3Icon />}
                     >
-                      <div style={{ color: "black" }}>Chat </div>
+                      <div style={{ color: "black" }}> Personal Info </div>
                     </MenuItem>
                   </>
                 )}
@@ -160,10 +168,16 @@ const SidebarAdm = () => {
                       <div style={{ color: "black" }}> Dashboard </div>
                     </MenuItem>
                     <MenuItem
-                      component={<Link to="/user/jobs" />}
-                      icon={<WorkHistoryIcon />}
+                      component={<Link to="/user/complete-profile" />}
+                      icon={<Person3Icon />}
                     >
-                      <div style={{ color: "black" }}> Track Applications </div>
+                      <div style={{ color: "black" }}> Complete Profile </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/user/resume-recommendations" />}
+                      icon={<AutoAwesomeIcon />}
+                    >
+                      <div style={{ color: "black" }}> AI Job Match </div>
                     </MenuItem>
                     <MenuItem
                       component={<Link to="/user/saved-jobs" />}
@@ -172,16 +186,16 @@ const SidebarAdm = () => {
                       <div style={{ color: "black" }}> Saved Jobs </div>
                     </MenuItem>
                     <MenuItem
-                      component={<Link to="/user/complete-profile" />}
-                      icon={<Person3Icon />}
+                      component={<Link to="/user/jobs" />}
+                      icon={<WorkHistoryIcon />}
                     >
-                      <div style={{ color: "black" }}> Complete Profile </div>
+                      <div style={{ color: "black" }}> Track Applications </div>
                     </MenuItem>
                     <MenuItem
-                      component={<Link to="/user/info" />}
-                      icon={<Person3Icon />}
+                      component={<Link to="/user/feedback" />}
+                      icon={<FeedbackIcon />}
                     >
-                      <div style={{ color: "black" }}> Personal Info </div>
+                      <div style={{ color: "black" }}> Feedback </div>
                     </MenuItem>
                     <MenuItem
                       component={<Link to="/user/chat" />}
@@ -189,23 +203,64 @@ const SidebarAdm = () => {
                     >
                       <div style={{ color: "black" }}> Chat </div>
                     </MenuItem>
+                    <MenuItem
+                      component={<Link to="/user/info" />}
+                      icon={<Person3Icon />}
+                    >
+                      <div style={{ color: "black" }}> Personal Info </div>
+                    </MenuItem>
                   </>
                 )}
               {userInfo &&
                 Number(userInfo?.role?.role ?? userInfo?.role ?? 0) === 2 && (
                   <>
                     <MenuItem
+                      component={<Link to="/mainadmin/stats" />}
+                      icon={<DashboardIcon />}
+                    >
+                      <div style={{ color: "black" }}> Dashboard </div>
+                    </MenuItem>
+                    <MenuItem
                       component={<Link to="/mainadmin" />}
                       icon={<Person3Icon />}
                     >
-                      <div style={{ color: "black" }}> All User </div>
+                      <div style={{ color: "black" }}> All Users </div>
                     </MenuItem>
-
+                    <MenuItem
+                      component={<Link to="/mainadmin/recruiters" />}
+                      icon={<GroupAddIcon />}
+                    >
+                      <div style={{ color: "black" }}> Recruiters </div>
+                    </MenuItem>
                     <MenuItem
                       component={<Link to="/mainadmin/alljobs" />}
                       icon={<WorkHistoryIcon />}
                     >
                       <div style={{ color: "black" }}> All Jobs </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/mainadmin/allcategory" />}
+                      icon={<CategoryIcon />}
+                    >
+                      <div style={{ color: "black" }}> All Categories </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/mainadmin/applications" />}
+                      icon={<AssignmentIcon />}
+                    >
+                      <div style={{ color: "black" }}> Monitor Applications </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/mainadmin/reports" />}
+                      icon={<FlagIcon />}
+                    >
+                      <div style={{ color: "black" }}> Reported Content </div>
+                    </MenuItem>
+                    <MenuItem
+                      component={<Link to="/mainadmin/feedback" />}
+                      icon={<RateReviewIcon />}
+                    >
+                      <div style={{ color: "black" }}> Feedback </div>
                     </MenuItem>
                     <MenuItem
                       component={<Link to="/mainadmin/info" />}

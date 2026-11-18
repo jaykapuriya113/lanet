@@ -36,6 +36,7 @@ const formatTimelineDate = (value) => {
 const UserJobsHistory = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const isFeedbackView = new URLSearchParams(location.search).get("view") === "feedback";
   const {
     applications = [],
     loading,
@@ -58,7 +59,7 @@ const UserJobsHistory = () => {
   return (
     <Box>
       <Typography variant="h4" sx={{ color: "black", mb: 3 }}>
-        Track Applications
+        {isFeedbackView ? "Feedback" : "Track Applications"}
       </Typography>
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
@@ -102,6 +103,7 @@ const UserJobsHistory = () => {
                   jobId={application?.jobId?._id || application?.jobId}
                   interview={application?.interview}
                   feedback={application?.feedback}
+                  expandFeedback={isFeedbackView}
                 />
 
                 <Box

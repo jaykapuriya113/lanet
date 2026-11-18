@@ -1,100 +1,57 @@
-// // import { createTheme } from '@mui/material/styles';
-// import { blue, grey, lightBlue } from "@mui/material/colors";
+import { grey } from "@mui/material/colors";
 
-// // export const theme = createTheme({
-// //     palette: {
-// //         primary: {
-// //             main: blue[500]
-// //         },
-// //         secondary: {
-// //             main: lightBlue[800],
-// //             midNightBlue: "#003366"
-// //         }
-// //     }
-// // });
-
-// export const themeColors = (mode) => ({
-//   palette: {
-//     mode,
-//     ...(mode === "light"
-//       ? {
-//           // palette values for light mode
-//           primary: {
-//             main: blue[500],
-//             white: "#fff",
-//           },
-//           secondary: {
-//             main: lightBlue[800],
-//             midNightBlue: "#003366",
-//           },
-//         }
-//       : {
-//           // palette values for dark mode
-//           primary: {
-//             main: "#003366",
-//             white: "#003366",
-//           },
-//           secondary: {
-//             main: blue[500],
-//             midNightBlue: "#2196f3",
-//           },
-//           background: {
-//             default: "#1e1e1e",
-//           },
-//           text: {
-//             primary: "#fff",
-//             secondary: grey[500],
-//           },
-//         }),
-//   },
-// });
-
-// import { createTheme } from '@mui/material/styles';
-import { blue, grey, lightBlue } from "@mui/material/colors";
-
-// export const theme = createTheme({
-//     palette: {
-//         primary: {
-//             main: blue[500]
-//         },
-//         secondary: {
-//             main: lightBlue[800],
-//             midNightBlue: "#003366"
-//         }
-//     }
-// });
+// ── Sky Blue + White palette ──────────────────────────────────────────────────
+// Primary  : #2196F3  (Sky Blue)
+// Dark     : #1689D5  (Deep Sky Blue — headings, hover states)
+// Light    : #F0F8FF  (Alice Blue — subtle backgrounds)
+// White    : #FFFFFF
+// Text     : #263238  (Blue-Grey 900 — readable on white)
+// Secondary: #1689D5  (used by MUI secondary slots — location icons, subtitles)
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const themeColors = (mode) => ({
   palette: {
     mode,
     ...(mode === "light"
       ? {
-          // palette values for light mode
           primary: {
-            main: blue[500],
-            white: "#fff",
+            main:  "#2196F3",   // Sky Blue
+            dark:  "#1689D5",   // Deep Sky Blue
+            light: "#F0F8FF",   // Alice Blue
+            white: "#FFFFFF",
           },
           secondary: {
-            main: lightBlue[800],
-            midNightBlue: "white",
+            main:         "#1689D5",  // Deep Sky Blue
+            midNightBlue: "#FFFFFF",
+          },
+          background: {
+            default: "#F0F8FF",
+            paper:   "#FFFFFF",
+          },
+          text: {
+            primary:   "#263238",
+            secondary: "#546E7A",
           },
         }
       : {
-          // palette values for dark mode
+          // Dark mode — keep as a deep navy/blue variant
           primary: {
-            main: "#003366",
-            white: "#003366",
+            main:  "#2196F3",
+            dark:  "#1689D5",
+            light: "#1a2a3a",
+            white: "#1a2a3a",
           },
           secondary: {
-            main: blue[500],
+            main:         "#2196F3",
             midNightBlue: "#2196f3",
           },
           background: {
-            default: "#1e1e1e",
+            default: "#0d1b2a",
+            paper:   "#122030",
           },
           text: {
-            primary: "#fff",
-            secondary: grey[500],
+            primary:   "#e8f4fc",
+            secondary: grey[400],
           },
         }),
   },

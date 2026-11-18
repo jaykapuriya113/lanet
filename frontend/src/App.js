@@ -19,6 +19,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import SingleJob from "./pages/SingleJob";
 import DashJobs from "./pages/admin/DashJobs";
 import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 import DashCategory from "./pages/admin/DashCategory";
 import DashCreateJob from "./pages/admin/DashCreateJob";
 import DashCreateCategory from "./pages/admin/DashCreateCategory";
@@ -37,11 +38,21 @@ import DashAllUsers from "./component/mainadmin/DashUser";
 import DashAdminInfo from "./component/mainadmin/DashAdminInfo";
 import DashAllJobs from "./component/mainadmin/DashAllJobs";
 import DashAllCategory from "./component/mainadmin/DashAllCategory";
+import AdminStats from "./component/mainadmin/AdminStats";
+import AdminRecruiters from "./component/mainadmin/AdminRecruiters";
+import AdminApplications from "./component/mainadmin/AdminApplications";
+import AdminReports from "./component/mainadmin/AdminReports";
+import AdminFeedback from "./component/mainadmin/AdminFeedback";
 import RecruiterDashboard from "./pages/admin/RecruiterDashboard";
 import DashUsers from "./pages/admin/DashUsers";
 import ApplicantReview from "./pages/admin/ApplicantReview";
 import SuitableCandidates from "./pages/admin/SuitableCandidates";
 import PlatformFeedback from "./pages/admin/PlatformFeedback";
+import ResumeRecommendations from "./pages/user/ResumeRecommendations";
+import UserPlatformFeedback from "./pages/user/UserPlatformFeedback";
+import JobResults from "./pages/JobResults";
+import AboutUs from "./pages/AboutUs";
+import HelpFAQ from "./pages/HelpFAQ";
 
 //HOC
 const UserDashboardHOC = Layout(UserDashboard);
@@ -60,14 +71,21 @@ const DashAdminInfoHOC = Layout(DashAdminInfo);
 const DashAllJobsHOC = Layout(DashAllJobs);
 const DashAllCategoryHOC = Layout(DashAllCategory);
 const DashAllUsersHOC = Layout(DashAllUsers);
+const AdminStatsHOC = Layout(AdminStats);
+const AdminRecruitersHOC = Layout(AdminRecruiters);
+const AdminApplicationsHOC = Layout(AdminApplications);
+const AdminReportsHOC   = Layout(AdminReports);
+const AdminFeedbackHOC  = Layout(AdminFeedback);
 const RecruiterDashboardHOC = Layout(RecruiterDashboard);
 const DashUsersHOC = Layout(DashUsers);
 const ApplicantReviewHOC = Layout(ApplicantReview);
 const SuitableCandidatesHOC = Layout(SuitableCandidates);
 const PlatformFeedbackHOC = Layout(PlatformFeedback);
+const ResumeRecommendationsHOC = Layout(ResumeRecommendations);
+const UserPlatformFeedbackHOC = Layout(UserPlatformFeedback);
 
-const appID = "2409544426dbdcb4";
-const region = "us";
+const appID = process.env.REACT_APP_COMETCHAT_APP_ID;
+const region = process.env.REACT_APP_COMETCHAT_REGION;
 const appSetting = new CometChat.AppSettingsBuilder()
   .subscribePresenceForAllUsers()
   .setRegion(region)
@@ -94,10 +112,16 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/jobs" element={<JobResults />} />
               <Route path="/search/location/:location" element={<Home />} />
+              <Route path="/search/:keyword/location/:location" element={<Home />} />
               <Route path="/search/:keyword" element={<Home />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/login" element={<LogIn />} />
+              <Route path="/admin/login" element={<LogIn adminLogin />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/help" element={<HelpFAQ />} />
               <Route path="/search" element={<YoutubeVideo />} />
               <Route path="/job/:id" element={<SingleJob />} />
               <Route
@@ -221,6 +245,46 @@ const App = () => {
                 }
               />
               <Route
+                path="/mainadmin/stats"
+                element={
+                  <MainAdminRoute>
+                    <AdminStatsHOC />
+                  </MainAdminRoute>
+                }
+              />
+              <Route
+                path="/mainadmin/recruiters"
+                element={
+                  <MainAdminRoute>
+                    <AdminRecruitersHOC />
+                  </MainAdminRoute>
+                }
+              />
+              <Route
+                path="/mainadmin/applications"
+                element={
+                  <MainAdminRoute>
+                    <AdminApplicationsHOC />
+                  </MainAdminRoute>
+                }
+              />
+              <Route
+                path="/mainadmin/reports"
+                element={
+                  <MainAdminRoute>
+                    <AdminReportsHOC />
+                  </MainAdminRoute>
+                }
+              />
+              <Route
+                path="/mainadmin/feedback"
+                element={
+                  <MainAdminRoute>
+                    <AdminFeedbackHOC />
+                  </MainAdminRoute>
+                }
+              />
+              <Route
                 path="/user/dashboard"
                 element={
                   <UserRoute>
@@ -245,6 +309,14 @@ const App = () => {
                 }
               />
               <Route
+                path="/user/feedback"
+                element={
+                  <UserRoute>
+                    <UserPlatformFeedbackHOC />
+                  </UserRoute>
+                }
+              />
+              <Route
                 path="/user/saved-jobs"
                 element={
                   <UserRoute>
@@ -265,6 +337,14 @@ const App = () => {
                 element={
                   <UserRoute>
                     <DashUSerChatHOC />
+                  </UserRoute>
+                }
+              />
+              <Route
+                path="/user/resume-recommendations"
+                element={
+                  <UserRoute>
+                    <ResumeRecommendationsHOC />
                   </UserRoute>
                 }
               />

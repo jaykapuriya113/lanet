@@ -3,6 +3,9 @@ const Job = require("../models/jobModel");
 const ErrorResponse = require("../utils/errorResponse");
 const UserHistory = require("./../models/jobHistory");
 const Notification = require("../models/notificationModel");
+const sendEmail = require("../utils/email");
+const { applicationConfirmationEmail } = require("../utils/emailTemplates");
+const { calculateCandidateJobMatch } = require("../utils/jobMatch");
 const fs = require("fs/promises");
 const path = require("path");
 
@@ -82,6 +85,29 @@ exports.singleUser = async (req, res, next) => {
 //edit user
 exports.editUser = async (req, res, next) => {
   try {
+    // Role=1 recruiters: allow editing their own profile fields
+    if (Number(req.user.role) === 1) {
+      if (String(req.user._id) !== String(req.params.id)) {
+        return next(new ErrorResponse("You can only edit your own profile", 403));
+      }
+      const recruiterEditableFields = ["firstName", "lastName", "phoneNumber", "profilePhoto", "companyName", "companyWebsite", "companyAddress"];
+      const updates = {};
+      recruiterEditableFields.forEach((field) => {
+        if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+          updates[field] =
+            typeof req.body[field] === "string"
+              ? req.body[field].trim()
+              : req.body[field];
+        }
+      });
+      const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updates },
+        { new: true },
+      ).select("-password");
+      return res.status(200).json({ success: true, user: updatedUser });
+    }
+
     if (Number(req.user.role) === 0) {
       if (String(req.user._id) !== String(req.params.id)) {
         return next(
@@ -271,15 +297,21 @@ exports.submitApplicationFeedback = async (req, res, next) => {
       return next(new ErrorResponse("Only users can submit feedback", 403));
     }
 
-    const rating = Number(req.body.rating);
-    const comment =
-      typeof req.body.comment === "string" ? req.body.comment.trim() : "";
-    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      return next(new ErrorResponse("Rating must be from 1 to 5", 400));
-    }
-    if (!comment || comment.length > 2000) {
+    const answers = {
+      overallExperience:
+        typeof req.body.overallExperience === "string"
+          ? req.body.overallExperience.trim()
+          : "",
+      likedMost:
+        typeof req.body.likedMost === "string" ? req.body.likedMost.trim() : "",
+      suggestedImprovements:
+        typeof req.body.suggestedImprovements === "string"
+          ? req.body.suggestedImprovements.trim()
+          : "",
+    };
+    if (Object.values(answers).some((answer) => !answer || answer.length > 5000)) {
       return next(
-        new ErrorResponse("Feedback is required and must be 2000 characters or fewer", 400),
+        new ErrorResponse("Answer all three questions with responses under 5000 characters", 400),
       );
     }
 
@@ -293,35 +325,21 @@ exports.submitApplicationFeedback = async (req, res, next) => {
     if (existingApplication.feedback) {
       return next(new ErrorResponse("Feedback has already been submitted", 409));
     }
-    const eligibleApplicationStatus = [
-      "selected",
-      "accepted",
-      "rejected",
-    ].includes(existingApplication.applicationStatus);
-    if (
-      !eligibleApplicationStatus &&
-      existingApplication.interview?.status !== "completed"
-    ) {
-      return next(
-        new ErrorResponse("Feedback is available after the application is completed", 400),
-      );
-    }
-
     const application = await UserHistory.findOneAndUpdate(
       {
         _id: req.params.applicationId,
         user: req.user._id,
-        $or: [
-          { applicationStatus: { $in: ["selected", "accepted", "rejected"] } },
-          { "interview.status": "completed" },
-        ],
         feedback: { $exists: false },
       },
       {
         $set: {
           feedback: {
-            rating,
-            comment,
+              ...answers,
+              comment: [
+                `What was your overall experience with the company?\n${answers.overallExperience}`,
+                `What did you like most about the company and recruitment process?\n${answers.likedMost}`,
+                `What improvements would you suggest for the company or recruitment process?\n${answers.suggestedImprovements}`,
+              ].join("\n\n"),
             user: req.user._id,
             job: existingApplication.jobId,
             submittedAt: new Date(),
@@ -563,6 +581,9 @@ exports.createUserJobsHistory = async (req, res, next) => {
     if (!job) {
       return next(new ErrorResponse("Job not found", 404));
     }
+    if (job.isDeleted) {
+      return next(new ErrorResponse("This job is no longer available", 400));
+    }
     if (Number(req.user.role) === 1) {
       return next(new ErrorResponse("Recruiters cannot apply to jobs", 403));
     }
@@ -586,6 +607,7 @@ exports.createUserJobsHistory = async (req, res, next) => {
       return next(new ErrorResponse("You must log in", 401));
     }
 
+    const match = await calculateCandidateJobMatch(currentUser, job);
     const addJobHostory = {
       title,
       description,
@@ -597,6 +619,10 @@ exports.createUserJobsHistory = async (req, res, next) => {
       coverLetter,
       assessment,
       applicationStatus: "pending",
+      matchScore: match.score,
+      matchedSkills: match.matchedSkills,
+      missingSkills: match.missingSkills,
+      matchExplanation: match.explanation,
       statusHistory: [
         {
           status: "Applied",
@@ -613,6 +639,35 @@ exports.createUserJobsHistory = async (req, res, next) => {
       { $addToSet: { jobsHistory: userHistory._id } },
       { new: true },
     );
+
+    // Send application confirmation email — non-blocking, failure must not
+    // undo the successfully saved application.
+    setImmediate(async () => {
+      try {
+        const applicant = await User.findById(req.user._id).select(
+          "email firstName lastName",
+        );
+        if (applicant && applicant.email) {
+          const candidateName =
+            `${applicant.firstName || ""} ${applicant.lastName || ""}`.trim() ||
+            "Candidate";
+          const { subject, html, text } = applicationConfirmationEmail({
+            candidateName,
+            jobTitle:        job.title,
+            companyName:     job.companyName,
+            applicationDate: userHistory.createdAt || new Date(),
+            applicationId:   String(userHistory._id),
+          });
+          await sendEmail({ email: applicant.email, subject, html, text });
+        }
+      } catch (emailErr) {
+        const category = emailErr.category || "EMAIL_ERROR";
+        const hint     = emailErr.hint     || emailErr.message || "unknown";
+        console.error(
+          `[applyJob] Confirmation email failed (${category}): ${hint}`,
+        );
+      }
+    });
 
     return res.status(200).json({
       success: true,

@@ -6,13 +6,28 @@ const {
   forgotPassword,
   resetPassword,
   updatePassword,
+  verifyEmail,
+  resendVerificationCode,
 } = require("../controllers/authControllers");
 const { isAuthenticated } = require("../middleware/auth");
+const {
+  startGoogleOAuth,
+  googleOAuthCallback,
+} = require("../controllers/googleOAuthController");
 const router = express.Router();
 
 //auth router
+router.get("/google/oauth", startGoogleOAuth);
+router.get("/google/oauth/callback", googleOAuthCallback);
+
 //  /api/signup
 router.post("/signup", signup);
+
+//  /api/verify-email  { email, code }
+router.post("/verify-email", verifyEmail);
+
+//  /api/resend-verification  { email }
+router.post("/resend-verification", resendVerificationCode);
 
 //  /api/signin
 router.post("/signin", signin);

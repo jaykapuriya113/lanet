@@ -3,6 +3,8 @@ const ErrorResponse = require("../utils/errorResponse");
 const User = require("../models/userModel");
 const UserHistory = require("../models/jobHistory");
 const Notification = require("../models/notificationModel");
+const sendEmail = require("../utils/email");
+const { interviewInvitationEmail } = require("../utils/emailTemplates");
 const {
   normalizeApplicationStatus,
   addStatusHistoryEntry,
@@ -91,6 +93,33 @@ const createOrUpdateInterviewNotification = async (
     );
     if (!updatedNotification) throw error;
     return updatedNotification;
+  }
+};
+
+/**
+ * Sends an interview invitation or reschedule email to the candidate.
+ * Failures are logged but never propagate — the in-app notification has
+ * already been written at this point and must not be rolled back.
+ */
+const sendInterviewEmail = async (application, job, interview, rescheduled = false) => {
+  try {
+    const candidate = await User.findById(application.user).select("email firstName lastName");
+    if (!candidate || !candidate.email) return;
+    const candidateName =
+      `${candidate.firstName || ""} ${candidate.lastName || ""}`.trim() || "Candidate";
+    const { subject, html, text } = interviewInvitationEmail({
+      candidateName,
+      jobTitle:      job.title,
+      companyName:   job.companyName,
+      interviewDate: interview.date,
+      interviewTime: interview.time,
+      meetingLink:   interview.meetingLink,
+      rescheduled,
+      applicationId: String(application._id),
+    });
+    await sendEmail({ email: candidate.email, subject, html, text });
+  } catch (err) {
+    console.error("[email] interviewInvitationEmail failed:", err.message);
   }
 };
 
@@ -224,6 +253,9 @@ exports.scheduleRecruiterInterview = async (req, res, next) => {
       updatedApplication.interview,
     );
 
+    // Send interview invitation email (non-blocking — failure does not affect response)
+    await sendInterviewEmail(updatedApplication, job, updatedApplication.interview, false);
+
     return res.status(201).json({
       success: true,
       application: updatedApplication,
@@ -275,6 +307,9 @@ exports.rescheduleRecruiterInterview = async (req, res, next) => {
       updatedApplication.interview,
       true,
     );
+
+    // Send reschedule email (non-blocking)
+    await sendInterviewEmail(updatedApplication, job, updatedApplication.interview, true);
 
     return res.status(200).json({
       success: true,

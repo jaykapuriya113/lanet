@@ -25,6 +25,21 @@ const platformFeedbackSchema = new mongoose.Schema(
       default: Date.now,
       required: true,
     },
+    // Admin review fields
+    status: {
+      type: String,
+      enum: ["pending", "reviewed", "resolved"],
+      default: "pending",
+    },
+    adminNote: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: "",
+    },
+    reviewedAt: {
+      type: Date,
+    },
   },
   { timestamps: false },
 );

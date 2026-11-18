@@ -2,6 +2,9 @@ const Job = require("../models/jobModel");
 const Notification = require("../models/notificationModel");
 const SavedJob = require("../models/savedJobModel");
 const UserHistory = require("../models/jobHistory");
+const User = require("../models/userModel");
+const sendEmail = require("../utils/email");
+const { deadlineReminderEmail } = require("../utils/emailTemplates");
 
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000;
 const REMINDER_DAYS = new Set([0, 1, 3]);
@@ -69,7 +72,7 @@ const createApplicationDeadlineReminders = async () => {
 
     for (const userId of userIds) {
       try {
-        await Notification.updateOne(
+        const result = await Notification.updateOne(
           {
             userId,
             jobId: job._id,
@@ -92,6 +95,31 @@ const createApplicationDeadlineReminders = async () => {
           },
           { upsert: true },
         );
+
+        // Only send an email when the notification was genuinely new (upserted).
+        // result.upsertedCount === 1 means this is the first time we're firing
+        // this reminder for this user/job/day combination.
+        if (result.upsertedCount === 1) {
+          try {
+            const user = await User.findById(userId).select("email firstName lastName");
+            if (user && user.email) {
+              const candidateName =
+                `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Candidate";
+              const deadlineDateStr = deadlineDate.toISOString().slice(0, 10);
+              const { subject, html, text } = deadlineReminderEmail({
+                candidateName,
+                jobTitle:     job.title,
+                companyName:  job.companyName,
+                deadlineDate: deadlineDateStr,
+                daysLeft:     job.daysBeforeDeadline,
+                jobId:        String(job._id),
+              });
+              await sendEmail({ email: user.email, subject, html, text });
+            }
+          } catch (emailErr) {
+            console.error("[email] deadlineReminderEmail failed:", emailErr.message);
+          }
+        }
       } catch (error) {
         if (error.code !== 11000) throw error;
       }

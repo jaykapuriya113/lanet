@@ -27,6 +27,24 @@ import {
   userReducerProfile,
   userReducerSignIn,
   userReducerSignUp,
+  resumeAnalyzeReducer,
+  prepPlanReducer,
+  adminStatsReducer,
+  adminJobsReducer,
+  adminRecruitersReducer,
+  adminToggleJobReducer,
+  adminDeleteJobReducer,
+  adminApplicationsReducer,
+  adminReportsReducer,
+  userSubmitReportReducer,
+  adminFeedbackReducer,
+  // Phase 2 new reducers
+  adminUsersReducer,
+  adminRecruiterStatusReducer,
+  adminDeletedJobsReducer,
+  adminRestoreJobReducer,
+  adminDeleteCategoryReducer,
+  adminSpamIndicatorsReducer,
 } from "./reducers/userReducer";
 import { modeReducer } from "./reducers/themeModeReducer";
 import { deleteJobTypeReducer } from "./reducers/jobTypeReducer";
@@ -60,6 +78,24 @@ const reducer = combineReducers({
   applyByUser: useApplyLoadJobReducer,
   updateStatus: updateJobStatusReducer,
   savedJobs: savedJobReducer,
+  resumeAnalyze: resumeAnalyzeReducer,
+  prepPlan: prepPlanReducer,
+  adminStats: adminStatsReducer,
+  adminJobs: adminJobsReducer,
+  adminRecruiters: adminRecruitersReducer,
+  adminToggleJob: adminToggleJobReducer,
+  adminDeleteJob: adminDeleteJobReducer,
+  adminApplications: adminApplicationsReducer,
+  adminReports: adminReportsReducer,
+  userSubmitReport: userSubmitReportReducer,
+  adminFeedback: adminFeedbackReducer,
+  // Phase 2
+  adminUsers: adminUsersReducer,
+  adminRecruiterStatus: adminRecruiterStatusReducer,
+  adminDeletedJobs: adminDeletedJobsReducer,
+  adminRestoreJob: adminRestoreJobReducer,
+  adminDeleteCategory: adminDeleteCategoryReducer,
+  adminSpamIndicators: adminSpamIndicatorsReducer,
 });
 
 //initial state

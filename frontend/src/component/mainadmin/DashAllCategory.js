@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import AddIcon from "@mui/icons-material/Add";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  adminJobTypeLoadAction,
+  jobTypeLoadAction,
   deleteJobTypeAction,
 } from "../../redux/actions/jobTypeAction";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -13,32 +13,16 @@ import moment from "moment";
 
 const DashAllCategory = () => {
   const dispatch = useDispatch();
-  const [render, setRender] = React.useState(false);
-  const renderHandler = () => {
-    setRender(!render);
-  };
-  // useEffect(() => {
-  //   dispatch(jobTypeLoadAction());
-  // }, []);
 
-  // const { jobType, loading } = useSelector((state) => state.jobTypeAll);
-
+  // Load ALL categories (no owner filter) — this endpoint is public and returns
+  // every category in the database, which is correct for the main admin view.
   useEffect(() => {
-    const userInfo = localStorage.getItem("userInfo");
-    const user = JSON.parse(userInfo);
-    const id = user.role._id;
-    dispatch(adminJobTypeLoadAction(id));
-  }, []);
+    dispatch(jobTypeLoadAction());
+  }, [dispatch]);
 
-  const { jobType, loading } = useSelector((state) => state.jobType);
-  let data = [];
-  let jobsT;
-  if (jobType) {
-    jobsT = jobType.jobs;
-  }
-  data = jobsT !== undefined && jobsT.length > 0 ? jobsT : [];
+  // jobTypeAll reducer stores the array under jobType (set from payload.jobT)
+  const { jobType = [], loading } = useSelector((state) => state.jobTypeAll);
 
-  //delete job by Id
   const deleteJobCategoryById = (e, id) => {
     dispatch(deleteJobTypeAction(id));
     window.location.reload();
@@ -48,40 +32,31 @@ const DashAllCategory = () => {
     {
       field: "_id",
       headerName: "Category ID",
-      width: 150,
-      editable: true,
+      width: 220,
     },
     {
       field: "jobTypeName",
       headerName: "Category",
-      width: 150,
+      width: 180,
     },
     {
       field: "createdAt",
-      headerName: "Create At",
-      width: 150,
+      headerName: "Created At",
+      width: 180,
       renderCell: (params) =>
-        moment(params.row.createdAt).format("YYYY-MM-DD HH:MM:SS"),
+        moment(params.row.createdAt).format("YYYY-MM-DD HH:mm:ss"),
     },
-
     {
       field: "Actions",
-      width: 200,
+      headerName: "Actions",
+      width: 120,
+      sortable: false,
       renderCell: (values) => (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            width: "100px",
-          }}
-        >
+        <Box sx={{ display: "flex", alignItems: "center" }}>
           <DeleteIcon
             onClick={(e) => deleteJobCategoryById(e, values.row._id)}
-            variant="contained"
-            color="error"
-          >
-            Delete
-          </DeleteIcon>
+            sx={{ cursor: "pointer", color: "error.main" }}
+          />
         </Box>
       ),
     },
@@ -89,45 +64,40 @@ const DashAllCategory = () => {
 
   return (
     <Box display="flex" justifyContent="center" mt={3}>
-      <Box width="65%">
+      <Box width="75%">
         <Typography variant="h4" sx={{ color: "black", pb: 3 }}>
-          Jobs category
+          All Categories
         </Typography>
+
         <Box sx={{ pb: 1, display: "flex", justifyContent: "right" }}>
           <Button variant="contained" color="success" startIcon={<AddIcon />}>
             <Link
               style={{ color: "white", textDecoration: "none" }}
               to="/recruiter/category/create"
             >
-              Create category
+              Create Category
             </Link>
           </Button>
         </Box>
+
         <Paper sx={{ bgcolor: "secondary.midNightBlue" }}>
-          <Box sx={{ height: 400, width: "100%" }}>
+          <Box sx={{ height: 450, width: "100%" }}>
             <DataGrid
               getRowId={(row) => row._id}
+              loading={loading}
               sx={{
-                "& .MuiTablePagination-displayedRows": {
-                  color: "black",
-                },
+                "& .MuiTablePagination-displayedRows": { color: "black" },
                 color: "black",
                 [`& .${gridClasses.row}`]: {},
-                button: {
-                  color: "black",
-                },
+                button: { color: "black" },
               }}
-              rows={data}
+              rows={Array.isArray(jobType) ? jobType : []}
               columns={columns}
-              pageSize={3}
-              rowsPerPageOptions={[3]}
               slots={{ toolbar: GridToolbar }}
               initialState={{
-                pagination: {
-                  paginationModel: { page: 0, pageSize: 3 },
-                },
+                pagination: { paginationModel: { page: 0, pageSize: 10 } },
               }}
-              pageSizeOptions={[5, 10]}
+              pageSizeOptions={[10, 25]}
             />
           </Box>
         </Paper>
@@ -135,4 +105,5 @@ const DashAllCategory = () => {
     </Box>
   );
 };
+
 export default DashAllCategory;

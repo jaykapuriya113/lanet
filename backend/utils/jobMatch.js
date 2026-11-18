@@ -1,3 +1,7 @@
+const fs = require("fs");
+const path = require("path");
+const { extractResumeText } = require("./resumeExtractor");
+
 const COMMON_SKILL_STOPWORDS = new Set([
   "and",
   "the",
@@ -123,6 +127,142 @@ const GENERIC_SKILL_WORDS = new Set([
   "job",
 ]);
 
+const SKILL_ALIASES = {
+  javascript: ["javascript", "js", "ecmascript"],
+  typescript: ["typescript", "ts"],
+  python: ["python", "python3"],
+  java: ["java"],
+  react: ["react", "reactjs", "react.js"],
+  "next.js": ["next.js", "nextjs"],
+  vue: ["vue", "vuejs", "vue.js"],
+  angular: ["angular", "angularjs"],
+  "node.js": ["node.js", "nodejs", "node"],
+  express: ["express", "expressjs", "express.js"],
+  mongodb: ["mongodb", "mongo"],
+  postgresql: ["postgresql", "postgres"],
+  mysql: ["mysql"],
+  sql: ["sql"],
+  html: ["html", "html5"],
+  css: ["css", "css3"],
+  tailwind: ["tailwind", "tailwindcss"],
+  bootstrap: ["bootstrap"],
+  sass: ["sass", "scss"],
+  git: ["git", "github", "gitlab"],
+  docker: ["docker"],
+  kubernetes: ["kubernetes", "k8s"],
+  aws: ["aws", "amazon web services"],
+  gcp: ["gcp", "google cloud"],
+  azure: ["azure", "microsoft azure"],
+  rest: ["rest", "restful", "rest api"],
+  graphql: ["graphql"],
+  redux: ["redux", "redux toolkit"],
+  "c#": ["c#", "csharp"],
+  ".net": [".net", "dotnet"],
+  php: ["php"],
+  laravel: ["laravel"],
+  ruby: ["ruby"],
+  swift: ["swift"],
+  kotlin: ["kotlin"],
+  flutter: ["flutter"],
+  firebase: ["firebase"],
+  redis: ["redis"],
+  figma: ["figma"],
+  jira: ["jira"],
+  linux: ["linux", "unix", "bash"],
+  tensorflow: ["tensorflow"],
+  pytorch: ["pytorch"],
+  pandas: ["pandas"],
+  numpy: ["numpy"],
+  devops: ["devops", "ci/cd", "jenkins"],
+  "machine learning": ["machine learning"],
+};
+
+const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const extractKnownSkills = (value = "") => {
+  const text = normalizeText(value);
+  if (!text) return [];
+
+  return Object.entries(SKILL_ALIASES)
+    .filter(([, aliases]) =>
+      aliases.some((alias) =>
+        new RegExp(
+          `(^|[^a-z0-9])${escapeRegExp(normalizeText(alias))}($|[^a-z0-9])`,
+        ).test(text),
+      ),
+    )
+    .map(([skill]) => skill);
+};
+
+const calculateSkillMatch = (candidateText, job = {}) => {
+  const requiredSkills = extractKnownSkills(
+    [
+      job.title,
+      job.description,
+      job.AdditionalInformation,
+      job.additionalInformation,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+  if (!requiredSkills.length) {
+    return {
+      score: null,
+      matchedSkills: [],
+      missingSkills: [],
+      explanation: "No recognizable required skills were found in this job posting.",
+    };
+  }
+
+  const applicantSkills = new Set(extractKnownSkills(candidateText));
+  const matchedSkills = requiredSkills.filter((skill) =>
+    applicantSkills.has(skill),
+  );
+  const missingSkills = requiredSkills.filter(
+    (skill) => !applicantSkills.has(skill),
+  );
+  const score = Math.round((matchedSkills.length / requiredSkills.length) * 100);
+
+  return {
+    score,
+    matchedSkills,
+    missingSkills,
+    explanation: `Matched ${matchedSkills.length} of ${requiredSkills.length} required skills${
+      matchedSkills.length ? `: ${matchedSkills.join(", ")}` : ""
+    }.${
+      missingSkills.length
+        ? ` Missing: ${missingSkills.join(", ")}.`
+        : " All identified required skills are present."
+    }`,
+  };
+};
+
+const resolveResumePath = (resumeUrl) => {
+  if (typeof resumeUrl !== "string" || !resumeUrl.trim()) return null;
+
+  let pathname;
+  try {
+    pathname = new URL(resumeUrl).pathname;
+  } catch {
+    pathname = resumeUrl;
+  }
+
+  const uploadsIndex = pathname.indexOf("/uploads/");
+  if (uploadsIndex === -1 && !pathname.startsWith("uploads/")) return null;
+  const fileName = path.basename(
+    decodeURIComponent(
+      uploadsIndex === -1
+        ? pathname.slice("uploads/".length)
+        : pathname.slice(uploadsIndex + "/uploads/".length),
+    ),
+  );
+  if (!fileName) return null;
+
+  const uploadsDirectory = path.resolve(__dirname, "../uploads");
+  const filePath = path.resolve(uploadsDirectory, fileName);
+  return filePath.startsWith(`${uploadsDirectory}${path.sep}`) ? filePath : null;
+};
+
 const normalizeText = (value = "") => {
   if (value === null || value === undefined) return "";
   if (Array.isArray(value)) {
@@ -236,7 +376,6 @@ const extractUserSkills = (user = {}) => {
     user.education,
     user.experience,
     user.profileInformation,
-    user.resume,
     user.contactDetails,
     user.summary,
     user.bio,
@@ -275,7 +414,7 @@ const calculateJobMatch = (user = {}, job = {}) => {
 
   if (!requiredSkills.length || !applicantSkills.length) {
     return {
-      score: 0,
+      score: null,
       matchedSkills: [],
       missingSkills: requiredSkills.slice(0, 6),
       explanation: "Not enough data",
@@ -309,8 +448,56 @@ const calculateJobMatch = (user = {}, job = {}) => {
   };
 };
 
+const calculateCandidateJobMatch = async (user = {}, job = {}) => {
+  if (!user.resume) {
+    return {
+      score: null,
+      matchedSkills: [],
+      missingSkills: [],
+      explanation: "No resume has been uploaded for this candidate.",
+    };
+  }
+
+  const resumePath = resolveResumePath(user.resume);
+  if (!resumePath || !fs.existsSync(resumePath)) {
+    return {
+      score: null,
+      matchedSkills: [],
+      missingSkills: [],
+      explanation: "The uploaded resume could not be found or read.",
+    };
+  }
+
+  const resumeText = await extractResumeText(resumePath);
+  if (resumeText.length < 50) {
+    return {
+      score: null,
+      matchedSkills: [],
+      missingSkills: [],
+      explanation:
+        "Resume text could not be extracted. Upload a readable, text-based PDF to calculate a match score.",
+    };
+  }
+
+  return calculateSkillMatch(
+    [
+      resumeText,
+      user.skills,
+      user.education,
+      user.experience,
+      user.profileInformation,
+    ]
+      .filter(Boolean)
+      .join(" "),
+    job,
+  );
+};
+
 module.exports = {
   calculateJobMatch,
+  calculateCandidateJobMatch,
+  calculateSkillMatch,
   extractJobSkills,
   extractUserSkills,
+  extractKnownSkills,
 };

@@ -5,10 +5,10 @@ import CardActions from "@mui/material/CardActions";
 import CardContent from "@mui/material/CardContent";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { Avatar, IconButton, Tooltip, useTheme } from "@mui/material";
+import { Avatar, IconButton, Stack, Tooltip, useTheme } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { Link } from "react-router-dom";
-import AddIcon from "@mui/icons-material/Add";
 import SaveJobButton from "./SaveJobButton";
 
 const CardElement = ({
@@ -21,85 +21,110 @@ const CardElement = ({
   AdditionalInformation,
   companyName,
   onRemove,
-  detailsLabel = "More Details",
+  detailsLabel = "View Job",
 }) => {
   const { palette } = useTheme();
-  console.log(profilePhoto);
-  return (
-    <Card sx={{ minWidth: 275, mb: 2, mt: 2 }}>
-      <CardContent sx={{ mb: -1.5 }}>
-        <Box sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-          <LocationOnIcon
-            sx={{
-              color: palette.secondary.main,
-              fontSize: 18,
-              marginRight: 1,
-            }}
-          />
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: 15,
-              color: palette.secondary.main,
-              fontWeight: 500,
-            }}
-          >
-            {location}
-          </Typography>
 
-          <Tooltip title="Profile photo">
-            <IconButton sx={{ ml: 74 }}>
+  return (
+    <Card
+      sx={{
+        minWidth: 275,
+        mb: 2,
+        mt: 2,
+        transition: "box-shadow 0.18s, transform 0.18s",
+        "&:hover": {
+          boxShadow: "0 6px 20px rgba(23,59,54,0.12)",
+          transform: "translateY(-2px)",
+        },
+      }}
+    >
+      <CardContent sx={{ pb: 0 }}>
+        {/* ── Header row: location + avatar ── */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1,
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <LocationOnIcon sx={{ color: palette.secondary.main, fontSize: 18 }} />
+            <Typography
+              variant="body2"
+              sx={{ fontSize: 15, color: palette.secondary.main, fontWeight: 500 }}
+            >
+              {location}
+            </Typography>
+          </Stack>
+
+          <Tooltip title="Recruiter profile">
+            <IconButton sx={{ p: 0 }}>
               <Avatar
                 alt=""
                 src={profilePhoto}
-                sx={{ color: palette.primary.white }}
+                sx={{ width: 36, height: 36, color: palette.primary.white }}
               />
             </IconButton>
           </Tooltip>
         </Box>
-        <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
-          {jobTitle}
-        </Typography>
-        <Typography
-          variant="subtitle1"
+
+        {/*
+         * The entire content block (title, company, description) is wrapped in a
+         * <Link> so ANY click on the card body navigates to the job-details page.
+         * Using `display: block` keeps it block-level; `color: inherit` prevents
+         * the browser default blue-link colour from leaking through.
+         */}
+        <Link
+          to={`/job/${id}`}
+          style={{ display: "block", textDecoration: "none", color: "inherit" }}
+        >
+          <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
+            {jobTitle}
+          </Typography>
+          <Typography
+            variant="subtitle1"
+            sx={{ fontWeight: 600, fontSize: "16px", color: "#555", mt: 0.25 }}
+          >
+            {companyName}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 1, textAlign: "justify", color: "text.secondary" }}>
+            <span style={{ fontWeight: "bold" }}>Description: </span>
+            {description?.split(" ")?.slice(0, 15)?.join(" ") + "…"}
+          </Typography>
+        </Link>
+      </CardContent>
+
+      {/* ── Actions row ── */}
+      <CardActions sx={{ pt: 1 }}>
+        {/* Explicit CTA button — also a Link so it works as a standalone click target */}
+        <Button
+          disableElevation
+          variant="contained"
+          size="small"
+          endIcon={<ArrowForwardIcon />}
+          component={Link}
+          to={`/job/${id}`}
           sx={{
-            fontWeight: 600,
-            fontSize: "16px",
-            color: "#555",
+            ml: -0.5,
+            textDecoration: "none",
+            color: "white",
+            textTransform: "none",
+            fontWeight: 700,
           }}
         >
-          {companyName}
-        </Typography>
+          {detailsLabel}
+        </Button>
 
-        <Typography variant="body2" sx={{ marginTop: 1, textAlign: "justify" }}>
-          <span style={{ fontWeight: "bold" }}>Description: </span>
-          <span>
-            {description?.split(" ")?.slice(0, 15)?.join(" ") + "..."}
-          </span>
-        </Typography>
-        <CardActions>
-          <Button
-            disableElevation
-            variant="contained"
-            size="small"
-            startIcon={<AddIcon />}
-            sx={{ marginTop: 1, marginLeft: -0.9 }}
-          >
-            <Link
-              style={{ textDecoration: "none", color: "white", boxShadow: 0 }}
-              to={`/job/${id}`}
-            >
-              {detailsLabel}
-            </Link>
+        {/* Save bookmark — independent click, must NOT be inside the card Link */}
+        <SaveJobButton jobId={id} size="small" />
+
+        {onRemove && (
+          <Button size="small" color="error" onClick={onRemove}>
+            Remove
           </Button>
-          <SaveJobButton jobId={id} size="small" />
-          {onRemove && (
-            <Button size="small" color="error" onClick={onRemove}>
-              Remove
-            </Button>
-          )}
-        </CardActions>
-      </CardContent>
+        )}
+      </CardActions>
     </Card>
   );
 };
